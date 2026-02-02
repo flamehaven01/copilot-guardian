@@ -5,6 +5,20 @@ All notable changes to Copilot Guardian will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.4] - 2026-02-02
+
+### Fixed
+- **[CRITICAL]** Replaced blocking `execSync` with async `copilotChatAsync` in debug.ts to prevent event loop blocking
+- **[CRITICAL]** Fixed debug transcript logging - now properly records Q&A pairs instead of empty templates
+- Enhanced MCP installation error messages with detailed troubleshooting guidance
+- Improved diff parsing to handle binary files, whitespace changes, and complex hunks
+- Better npm permission failure diagnostics for corporate/restricted environments
+
+### Improved
+- Debug interactive mode now fully asynchronous for better responsiveness
+- MCP setup provides clearer feedback for permission and PATH issues
+- Patch application more robust against edge cases (binary diffs, unusual formatting)
+
 ## [0.0.3] - 2026-02-02
 
 ### Fixed
