@@ -17,22 +17,50 @@ export interface ApplyResult {
 }
 
 /**
- * Apply a patch to local files
+ * Validate file path is within repository
+ */
+function isPathSafe(filePath: string, repoRoot: string): boolean {
+  const normalized = resolve(repoRoot, filePath);
+  return normalized.startsWith(repoRoot) && !filePath.includes('..');
+}
+
+/**
+ * Apply a patch to local files using git apply for safety
  */
 export async function applyPatch(
   patch: { file: string; content: string }[],
-  options: { dryRun?: boolean; autoCommit?: boolean } = {}
+  options: { dryRun?: boolean; autoCommit?: boolean; allowedFiles?: string[] } = {}
 ): Promise<ApplyResult> {
   const filesModified: string[] = [];
+  const repoRoot = process.cwd();
   
   try {
+    // Validate paths
+    for (const { file } of patch) {
+      if (!isPathSafe(file, repoRoot)) {
+        throw new Error(`Unsafe path detected: ${file}`);
+      }
+      
+      if (options.allowedFiles && !options.allowedFiles.includes(file)) {
+        throw new Error(`File not in allowed list: ${file}`);
+      }
+    }
+    
     // Apply file changes
     for (const { file, content } of patch) {
-      const filePath = resolve(process.cwd(), file);
+      const filePath = resolve(repoRoot, file);
       
       if (options.dryRun) {
         console.log(chalk.gray(`[DRY RUN] Would modify: ${file}`));
         continue;
+      }
+      
+      // Backup original
+      try {
+        const original = await readFile(filePath, 'utf-8');
+        await writeFile(filePath + '.guardian-backup', original, 'utf-8');
+      } catch {
+        // File might not exist yet
       }
       
       await writeFile(filePath, content, 'utf-8');
@@ -145,14 +173,18 @@ export async function autoHeal(
 }
 
 /**
- * Check CI status for a commit (simplified)
+ * Check CI status for a commit
  */
-async function checkCIStatus(commitSha: string): Promise<'passed' | 'failed' | 'pending'> {
+export async function checkCIStatus(commitSha: string): Promise<'passed' | 'failed' | 'pending'> {
   try {
+    // Get current repo
+    const repoInfo = await execAsync('gh', ['repo', 'view', '--json', 'owner,name']);
+    const { owner, name } = JSON.parse(repoInfo);
+    
     // Use gh CLI to check status
     const statusOutput = await execAsync('gh', [
       'api',
-      `/repos/{owner}/{repo}/commits/${commitSha}/status`
+      `/repos/${owner}/${name}/commits/${commitSha}/status`
     ]);
     
     const status = JSON.parse(statusOutput);
@@ -161,7 +193,8 @@ async function checkCIStatus(commitSha: string): Promise<'passed' | 'failed' | '
     if (status.state === 'failure') return 'failed';
     return 'pending';
     
-  } catch {
+  } catch (error) {
+    console.log(chalk.dim(`[~] Could not check CI status: ${error}`));
     // Fallback: assume pending
     return 'pending';
   }

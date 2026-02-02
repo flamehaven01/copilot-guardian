@@ -101,32 +101,46 @@ program
           
           console.log(chalk.cyan(`[>] Selected: ${bestPatch.label} (risk: ${bestPatch.risk_level})`));
           
-          // Read patch file and convert to applyable format
-          const fs = await import('fs/promises');
-          const patchContent = await fs.readFile(bestPatch.patchPath, 'utf-8');
-          
-          // Parse unified diff to extract file changes
-          // (Simplified: in production, use a diff parser library)
-          const patchData = parsePatchFile(patchContent);
-          
-          // Execute self-healing loop
-          const healResult = await autoHeal(patchData, {
-            maxRetries: 3,
-            pushRemote: true,
-            branch: 'main' // TODO: detect current branch
-          });
-          
-          if (healResult.success && healResult.ciStatus === 'passed') {
-            console.log(chalk.green.bold('\n[W] VICTORY! Guardian healed the CI failure.\n'));
-            console.log(chalk.cyan('    Your code is fixed. Your CI is green. You can sleep peacefully.\n'));
-            console.log(chalk.dim(`    Modified: ${healResult.filesModified.join(', ')}`));
-            console.log(chalk.dim(`    Commit: ${healResult.commitSha}\n`));
-            process.exit(0);
-          } else {
-            console.log(chalk.red.bold('\n[-] Auto-heal failed. Manual review needed.\n'));
-            console.log(chalk.yellow('    Guardian tried its best. Time for human wisdom.\n'));
+          // Apply patch using git apply (safe method)
+          try {
+            const modifiedFiles = await applyPatchViaDiff(bestPatch.patchPath, false);
+            
+            // Commit changes
+            const { execAsync } = await import('./engine/async-exec');
+            await execAsync('git', ['add', ...modifiedFiles]);
+            
+            const commitMsg = `fix: Guardian auto-heal (${bestPatch.label})`;
+            await execAsync('git', ['commit', '-m', commitMsg]);
+            
+            const commitSha = (await execAsync('git', ['rev-parse', 'HEAD'])).trim();
+            
+            console.log(chalk.green(`[+] Patch applied & committed: ${commitSha.substring(0, 7)}`));
+            
+            // Push and check CI
+            await execAsync('git', ['push', 'origin', 'HEAD']);
+            console.log(chalk.green('[+] Pushed to remote'));
+            
+            console.log(chalk.yellow('[~] Waiting for CI (30s)...'));
+            await new Promise(resolve => setTimeout(resolve, 30000));
+            
+            // Check CI status
+            const { checkCIStatus } = await import('./engine/auto-apply');
+            const ciStatus = await checkCIStatus(commitSha);
+            
+            if (ciStatus === 'passed') {
+              console.log(chalk.green.bold('\n[W] VICTORY! Guardian healed the CI!\n'));
+              console.log(chalk.cyan('    Sleep well. CI is green.\n'));
+              process.exit(0);
+            } else {
+              console.log(chalk.yellow('\n[~] CI still running or failed. Check manually.\n'));
+              process.exit(1);
+            }
+            
+          } catch (error: any) {
+            console.log(chalk.red(`\n[-] Auto-heal failed: ${error.message}\n`));
             process.exit(1);
           }
+          
         } else {
           console.log(
             chalk.dim(`\nNext: review & apply patch manually (e.g., git apply ${opts.outDir}/fix.conservative.patch)`)
@@ -188,45 +202,34 @@ program
   });
 
 /**
- * Parse unified diff format to extract file modifications
- * (Simplified parser - production should use proper diff library)
+ * Parse unified diff and apply via git apply (safe method)
+ * WARNING: Simplified implementation - use git apply for safety
  */
-function parsePatchFile(patchContent: string): Array<{ file: string; content: string }> {
-  const result: Array<{ file: string; content: string }> = [];
-  const fileBlocks = patchContent.split(/^diff --git /gm).filter(Boolean);
+async function applyPatchViaDiff(patchPath: string, dryRun = false): Promise<string[]> {
+  const { execAsync } = await import('./engine/async-exec');
+  const { readFile } = await import('fs/promises');
   
-  for (const block of fileBlocks) {
-    const fileMatch = block.match(/^a\/(.+?) b\/(.+?)$/m);
-    if (!fileMatch) continue;
+  try {
+    // Use git apply for safe patch application
+    const args = ['apply', '--verbose'];
+    if (dryRun) args.push('--check');
+    args.push(patchPath);
     
-    const filePath = fileMatch[2];
+    await execAsync('git', args);
     
-    // Extract new content (lines starting with +, excluding ---)
-    const lines = block.split('\n');
-    const contentLines: string[] = [];
-    let inHunk = false;
+    // Extract modified files from patch
+    const patchContent = await readFile(patchPath, 'utf-8');
+    const files: string[] = [];
+    const fileMatches = patchContent.matchAll(/^diff --git a\/(.+?) b\/(.+?)$/gm);
     
-    for (const line of lines) {
-      if (line.startsWith('@@')) {
-        inHunk = true;
-        continue;
-      }
-      if (inHunk) {
-        if (line.startsWith('+') && !line.startsWith('+++')) {
-          contentLines.push(line.substring(1));
-        } else if (!line.startsWith('-') && !line.startsWith('\\')) {
-          contentLines.push(line);
-        }
-      }
+    for (const match of fileMatches) {
+      files.push(match[2]);
     }
     
-    result.push({
-      file: filePath,
-      content: contentLines.join('\n')
-    });
+    return files;
+  } catch (error) {
+    throw new Error(`Patch application failed: ${error}`);
   }
-  
-  return result;
 }
 
 program.parse(process.argv);

@@ -1,8 +1,12 @@
 import chalk from "chalk";
 
+// ASCII-safe block characters for cross-platform compatibility
+const BLOCK_FULL = '#';
+const BLOCK_LIGHT = '-';
+
 function bar(p: number, width = 10): string {
   const filled = Math.max(0, Math.min(width, Math.round(p * width)));
-  return "█".repeat(filled) + "░".repeat(width - filled);
+  return BLOCK_FULL.repeat(filled) + BLOCK_LIGHT.repeat(width - filled);
 }
 
 export function renderHeader(repo: string, runId: number): void {
@@ -12,7 +16,7 @@ export function renderHeader(repo: string, runId: number): void {
 }
 
 export function renderSummary(analysis: any): void {
-  console.log("\n" + chalk.bold.bgRed(" ✖ FAILURE DIAGNOSIS ") + "\n");
+  console.log("\n" + chalk.bold.bgRed(" [X] FAILURE DIAGNOSIS ") + "\n");
   console.log(`${chalk.bold("Root cause:")} ${analysis.diagnosis.root_cause}`);
   console.log(`${chalk.bold("Selected:")}  ${analysis.diagnosis.selected_hypothesis_id} (${analysis.diagnosis.confidence_score})`);
   console.log(`${chalk.bold("Intent:")}    ${analysis.patch_plan.intent}`);

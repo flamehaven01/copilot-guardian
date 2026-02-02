@@ -80,19 +80,59 @@ export async function ensureMCPConfigured(): Promise<boolean> {
     fs.mkdirSync(configDir, { recursive: true });
   }
 
-  const config: MCPConfig = {
-    mcpServers: {
-      github: {
-        command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-github'],
-        env: {
-          GITHUB_TOKEN: '${GITHUB_TOKEN}'
+  // Backup existing config
+  if (fs.existsSync(configPath)) {
+    const backupPath = configPath + '.guardian-backup';
+    fs.copyFileSync(configPath, backupPath);
+    console.log(chalk.dim(`[~] Backed up existing config to ${backupPath}`));
+    
+    // Merge with existing config
+    try {
+      const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const config: MCPConfig = {
+        mcpServers: {
+          ...existing.mcpServers,
+          github: {
+            command: 'npx',
+            args: ['-y', '@modelcontextprotocol/server-github'],
+            env: {
+              GITHUB_TOKEN: '${GITHUB_TOKEN}'
+            }
+          }
+        }
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    } catch {
+      // If merge fails, use new config
+      const config: MCPConfig = {
+        mcpServers: {
+          github: {
+            command: 'npx',
+            args: ['-y', '@modelcontextprotocol/server-github'],
+            env: {
+              GITHUB_TOKEN: '${GITHUB_TOKEN}'
+            }
+          }
+        }
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    }
+  } else {
+    // New config
+    const config: MCPConfig = {
+      mcpServers: {
+        github: {
+          command: 'npx',
+          args: ['-y', '@modelcontextprotocol/server-github'],
+          env: {
+            GITHUB_TOKEN: '${GITHUB_TOKEN}'
+          }
         }
       }
-    }
-  };
-
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    };
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  
   console.log(chalk.green('[+] GitHub MCP configured'));
   console.log(chalk.dim(`    Config: ${configPath}`));
 
