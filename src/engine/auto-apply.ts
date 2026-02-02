@@ -38,23 +38,55 @@ export async function applyPatchViaDiff(
   const repoRoot = options.repoRoot || process.cwd();
   const filesModified: string[] = [];
   
-  // Extract affected files from diff
-  const fileRegex = /^[\+]{3} b\/(.+)$/gm;
-  let match;
-  while ((match = fileRegex.exec(diffContent)) !== null) {
-    const file = match[1];
-    
+  // Extract affected files from diff (additions, modifications, deletions, renames)
+  // Robust diff parsing for various edge cases
+  const addModifyRegex = /^[\+]{3} (?:b\/)?(.+)$/gm;
+  const deleteRegex = /^--- (?:a\/)?(.+)$/gm;
+  const renameRegex = /^rename (?:from|to) (.+)$/gm;
+  const binaryRegex = /^Binary files? (?:a\/)?(.+) and (?:b\/)?(.+) differ$/gm;
+  
+  const extractFiles = (regex: RegExp): string[] => {
+    const files: string[] = [];
+    let match;
+    while ((match = regex.exec(diffContent)) !== null) {
+      const file = match[1];
+      if (file && file !== '/dev/null' && !files.includes(file)) {
+        files.push(file);
+      }
+    }
+    return files;
+  };
+  
+  // Extract binary files (both old and new paths)
+  const binaryFiles: string[] = [];
+  let binaryMatch;
+  while ((binaryMatch = binaryRegex.exec(diffContent)) !== null) {
+    if (binaryMatch[1] && binaryMatch[1] !== '/dev/null') binaryFiles.push(binaryMatch[1]);
+    if (binaryMatch[2] && binaryMatch[2] !== '/dev/null') binaryFiles.push(binaryMatch[2]);
+  }
+  
+  const allFiles = [
+    ...extractFiles(addModifyRegex),
+    ...extractFiles(deleteRegex),
+    ...extractFiles(renameRegex),
+    ...binaryFiles
+  ];
+  
+  // Validate each file
+  for (const file of allFiles) {
     // Validate path safety
     if (!isPathSafe(file, repoRoot)) {
       throw new Error(`Unsafe path detected in diff: ${file}`);
     }
     
     // Check allowed files
-    if (options.allowedFiles && !options.allowedFiles.includes(file)) {
+    if (options.allowedFiles && options.allowedFiles.length > 0 && !options.allowedFiles.includes(file)) {
       throw new Error(`File not in allowed list: ${file}`);
     }
     
-    filesModified.push(file);
+    if (!filesModified.includes(file)) {
+      filesModified.push(file);
+    }
   }
   
   // Backup affected files
@@ -180,6 +212,7 @@ export async function applyPatch(
 
 /**
  * Auto-heal: Apply patch and retry CI up to maxRetries times
+ * DEPRECATED: Use CLI auto-heal mode with applyPatchViaDiff instead
  */
 export async function autoHeal(
   patch: { file: string; content: string }[],
@@ -189,6 +222,9 @@ export async function autoHeal(
     branch?: string;
   } = {}
 ): Promise<ApplyResult> {
+  console.warn(chalk.yellow('[!] WARNING: autoHeal() uses legacy text-replacement patching.'));
+  console.warn(chalk.yellow('[!] Use CLI --auto-heal mode with git-apply for safety.'));
+  
   const maxRetries = options.maxRetries ?? 3;
   let attempt = 0;
   
@@ -199,7 +235,7 @@ export async function autoHeal(
     attempt++;
     console.log(chalk.yellow(`[!] Attempt ${attempt}/${maxRetries}...`));
     
-    // Apply patch
+    // Apply patch with legacy method (not recommended)
     const applyResult = await applyPatch(patch, { autoCommit: true });
     
     if (!applyResult.success) {
@@ -281,34 +317,67 @@ export async function checkCIStatus(commitSha: string): Promise<'passed' | 'fail
  * Interactive apply: Ask user to confirm before applying
  */
 export async function interactiveApply(
-  patch: { file: string; content: string }[]
+  diffContent: string,
+  options: { allowedFiles?: string[]; repoRoot?: string } = {}
 ): Promise<ApplyResult> {
   console.log(chalk.yellow.bold('\n[!] Interactive Patch Application\n'));
-  
-  // Show diff preview
-  for (const { file } of patch) {
-    console.log(chalk.cyan(`  - ${file}`));
+
+  if (options.allowedFiles && options.allowedFiles.length === 0) {
+    return { success: false, filesModified: [], error: 'Allowlist is empty; refusing to apply patch.' };
   }
-  
+
+  try {
+    const previewFiles = await applyPatchViaDiff(diffContent, true, options);
+    for (const file of previewFiles) {
+      console.log(chalk.cyan(`  - ${file}`));
+    }
+  } catch (error: any) {
+    return { success: false, filesModified: [], error: error.message || 'Patch validation failed' };
+  }
+
   console.log(chalk.gray('\nOptions:'));
   console.log(chalk.gray('  1. Apply locally (no commit)'));
   console.log(chalk.gray('  2. Apply + commit'));
   console.log(chalk.gray('  3. Apply + commit + push + retry CI'));
   console.log(chalk.gray('  0. Cancel'));
-  
+
   // In real implementation, use inquirer or similar for input
   // For now, default to option 1
   const choice = 1 as 0 | 1 | 2 | 3;
-  
-  switch (choice) {
-    case 1:
-      return applyPatch(patch, { autoCommit: false });
-    case 2:
-      return applyPatch(patch, { autoCommit: true });
-    case 3:
-      return autoHeal(patch, { pushRemote: true, maxRetries: 3 });
-    case 0:
-    default:
-      return { success: false, filesModified: [], error: 'User cancelled' };
+
+  try {
+    switch (choice) {
+      case 1: {
+        const filesModified = await applyPatchViaDiff(diffContent, false, options);
+        return { success: true, filesModified };
+      }
+      case 2: {
+        const filesModified = await applyPatchViaDiff(diffContent, false, options);
+        await execAsync('git', ['add', ...filesModified]);
+        const commitMessage = `fix: Auto-applied Guardian patch (${filesModified.length} files)`;
+        await execAsync('git', ['commit', '-m', commitMessage]);
+        const commitSha = (await execAsync('git', ['rev-parse', 'HEAD'])).trim();
+        console.log(chalk.blue(`[>] Committed as ${commitSha.substring(0, 7)}`));
+        return { success: true, filesModified, commitSha };
+      }
+      case 3: {
+        const filesModified = await applyPatchViaDiff(diffContent, false, options);
+        await execAsync('git', ['add', ...filesModified]);
+        const commitMessage = `fix: Auto-applied Guardian patch (${filesModified.length} files)`;
+        await execAsync('git', ['commit', '-m', commitMessage]);
+        const commitSha = (await execAsync('git', ['rev-parse', 'HEAD'])).trim();
+        await execAsync('git', ['push', 'origin', 'HEAD']);
+        console.log(chalk.green('[+] Pushed to remote'));
+        console.log(chalk.yellow('[~] Waiting for CI (30s)...'));
+        await new Promise(resolve => setTimeout(resolve, 30000));
+        const ciStatus = await checkCIStatus(commitSha);
+        return { success: ciStatus === 'passed', filesModified, commitSha, ciStatus };
+      }
+      case 0:
+      default:
+        return { success: false, filesModified: [], error: 'User cancelled' };
+    }
+  } catch (error: any) {
+    return { success: false, filesModified: [], error: error.message || 'Patch apply failed' };
   }
 }

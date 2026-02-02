@@ -1,23 +1,20 @@
 import path from "node:path";
-import { execSync } from "node:child_process";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
 import { analyzeRun } from "./analyze";
 import { generatePatchOptions } from "./patch_options";
-import { ensureDir, loadText, writeText, extractJsonObject, validateJson } from "./util";
+import { ensureDir, loadText, writeText, extractJsonObject } from "./util";
+import { copilotChatAsync } from "./async-exec";
 
-function copilotChat(payload: string): string {
-  try {
-    return execSync("gh copilot chat --quiet", {
-      input: payload,
-      stdio: ["pipe", "pipe", "pipe"],
-      encoding: "utf8"
-    }) as unknown as string;
-  } catch (e: any) {
-    const stderr = e?.stderr ? String(e.stderr) : "";
-    throw new Error(`Copilot CLI failed.\n${stderr}`);
-  }
+/**
+ * Async wrapper for copilot chat (replaces blocking execSync)
+ */
+async function copilotChat(payload: string): Promise<string> {
+  return await copilotChatAsync(payload, {
+    showSpinner: false,
+    spinnerText: 'Asking Copilot...'
+  });
 }
 
 export async function debugInteractive(repo: string, runId: number, outDir = path.join(process.cwd(), ".copilot-guardian")) {
@@ -42,7 +39,7 @@ export async function debugInteractive(repo: string, runId: number, outDir = pat
 
     if (choice === "2") {
       await generatePatchOptions(analysis, outDir);
-      output.write(`\n✔ Patch options generated. See: ${path.join(outDir, "patch_options.json")}\n`);
+      output.write(`\n[+] Patch options generated. See: ${path.join(outDir, "patch_options.json")}\n`);
       continue;
     }
 
@@ -63,7 +60,7 @@ export async function debugInteractive(repo: string, runId: number, outDir = pat
       log_excerpt: ctx.logExcerpt
     }, null, 2)}\n\nQUESTION:\n${q}`;
 
-    const raw = copilotChat(payload);
+    const raw = await copilotChat(payload);
     writeText(path.join(outDir, "copilot.debug.followup.raw.txt"), raw);
 
     const obj = JSON.parse(extractJsonObject(raw));
@@ -71,11 +68,11 @@ export async function debugInteractive(repo: string, runId: number, outDir = pat
       throw new Error("Invalid follow-up JSON from Copilot (expected {answer, confidence, next_check})");
     }
 
-    // Append transcript
-    const snippet = `\n## Q: \n\n\n\n- confidence: \n- next_check: \n`;
+    // Append transcript with actual values
+    const snippet = `\n## Q: ${q}\n\n${obj.answer}\n\n- confidence: ${obj.confidence}\n- next_check: ${obj.next_check}\n`;
     writeText(transcriptPath, loadText(transcriptPath) + snippet);
 
-    output.write(`\nCopilot: \nNext check: \n`);
+    output.write(`\nCopilot: ${obj.answer}\nNext check: ${obj.next_check}\n`);
   }
 
   rl.close();

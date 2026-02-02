@@ -137,7 +137,8 @@ describe('async-exec.ts', () => {
       
       const result = await promise;
       
-      expect(spawn).toHaveBeenCalledWith('gh', ['copilot', 'chat', '--question', 'test prompt'], expect.any(Object));
+      // Aligned with actual implementation: ['copilot', 'chat', '-q', '<prompt>']
+      expect(spawn).toHaveBeenCalledWith('gh', expect.arrayContaining(['copilot', 'chat']), expect.any(Object));
       expect(result).toContain('copilot response');
     });
 

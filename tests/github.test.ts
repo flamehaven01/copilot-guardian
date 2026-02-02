@@ -10,9 +10,9 @@ describe('github.ts', () => {
 
   describe('fetchRunContext', () => {
     test('fetches complete run context', async () => {
+      // Aligned with actual implementation order and format
       (asyncExec.ghAsync as jest.Mock)
-        .mockResolvedValueOnce('12345') // run ID
-        .mockResolvedValueOnce('failed\nError: API_URL is not defined') // logs
+        .mockResolvedValueOnce('failed\nError: API_URL is not defined') // logs first
         .mockResolvedValueOnce('.github/workflows/ci.yml') // workflow path
         .mockResolvedValueOnce('name: CI\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest'); // workflow YAML
 
@@ -25,8 +25,8 @@ describe('github.ts', () => {
     });
 
     test('handles missing workflow file', async () => {
+      // Aligned with actual implementation call order
       (asyncExec.ghAsync as jest.Mock)
-        .mockResolvedValueOnce('12345')
         .mockResolvedValueOnce('Error log')
         .mockResolvedValueOnce('') // No workflow path
         .mockResolvedValueOnce('');
@@ -38,9 +38,9 @@ describe('github.ts', () => {
     });
 
     test('retries on transient errors', async () => {
+      // Aligned with actual implementation call order (no separate runId fetch)
       (asyncExec.ghAsync as jest.Mock)
         .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce('12345')
         .mockResolvedValueOnce('logs')
         .mockResolvedValueOnce('.github/workflows/ci.yml')
         .mockResolvedValueOnce('yaml content');
@@ -115,10 +115,10 @@ describe('github.ts', () => {
 
       await fetchRunContext('owner/repo', 99999);
 
-      expect(asyncExec.ghAsync).toHaveBeenCalledWith(
-        expect.arrayContaining(['run', 'view']),
-        expect.any(Object)
-      );
+      // Verify ghAsync was called correctly
+      expect(asyncExec.ghAsync).toHaveBeenCalled();
+      const firstCall = (asyncExec.ghAsync as jest.Mock).mock.calls[0];
+      expect(firstCall[0]).toEqual(expect.arrayContaining(['run', 'view']));
     });
 
     test('includes run metadata', async () => {

@@ -33,6 +33,29 @@ export type QualityReview = {
   suggested_adjustments: string[];
 };
 
+function extractFilesFromDiff(diff: string): string[] {
+  const files = new Set<string>();
+  const addModifyRegex = /^[\+]{3} (?:b\/)?(.+)$/gm;
+  const deleteRegex = /^--- (?:a\/)?(.+)$/gm;
+  const renameRegex = /^rename (?:from|to) (.+)$/gm;
+
+  const collect = (regex: RegExp) => {
+    let match;
+    while ((match = regex.exec(diff)) !== null) {
+      const file = match[1];
+      if (file && file !== "/dev/null") {
+        files.add(file);
+      }
+    }
+  };
+
+  collect(addModifyRegex);
+  collect(deleteRegex);
+  collect(renameRegex);
+
+  return Array.from(files);
+}
+
 async function copilotChat(input: string, context: string): Promise<string> {
   return copilotChatAsync(input, {
     spinnerText: `[>] ${context}...`
@@ -53,7 +76,7 @@ export async function generatePatchOptions(analysisJson: any, outDir = path.join
   
   try {
     validateJson(obj, path.join(process.cwd(), "schemas", "patch_options.schema.json"));
-    console.log(chalk.green('✓ Patch options validated'));
+    console.log(chalk.green('[+] Patch options validated'));
   } catch (error: any) {
     console.log(chalk.yellow('[!] Schema validation warning:'), error.message);
   }
@@ -65,6 +88,9 @@ export async function generatePatchOptions(analysisJson: any, outDir = path.join
     const patchPath = path.join(outDir, `fix.${strat.id}.patch`);
     writeText(patchPath, strat.diff.trim() + "\n");
 
+    // Extract affected files from diff (add/modify/delete/rename)
+    const affectedFiles = extractFilesFromDiff(strat.diff);
+
     const quality = await qualityReview(analysisJson, strat, outDir);
     results.push({
       label: strat.label,
@@ -73,17 +99,19 @@ export async function generatePatchOptions(analysisJson: any, outDir = path.join
       verdict: quality.verdict,
       slop_score: quality.slop_score,
       patchPath,
+      files: affectedFiles,
       summary: strat.summary
     });
     
     const verdictColor = quality.verdict === 'GO' ? chalk.green : chalk.red;
-    console.log(chalk.dim(`  ${strat.label.padEnd(15)}`), verdictColor(quality.verdict), chalk.dim(`slop=${quality.slop_score.toFixed(2)}`));
+    const slopScore = quality.slop_score !== undefined ? quality.slop_score.toFixed(2) : '0.00';
+    console.log(chalk.dim(`  ${strat.label.padEnd(15)}`), verdictColor(quality.verdict), chalk.dim(`slop=${slopScore}`));
   }
 
   const index = { timestamp: new Date().toISOString(), results };
   writeJson(path.join(outDir, "patch_options.json"), index);
   
-  console.log(chalk.green('✓ Patch options complete'));
+  console.log(chalk.green('[+] Patch options complete'));
 
   return { options: obj, index };
 }

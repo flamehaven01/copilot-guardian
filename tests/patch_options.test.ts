@@ -26,38 +26,42 @@ describe('patch_options.ts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Mock patch generation responses
+    // Mock patch generation responses - aligned with current implementation
     (asyncExec.copilotChatAsync as jest.Mock).mockImplementation((prompt: string) => {
-      if (prompt.includes('Generate 3 patch strategies')) {
-        return Promise.resolve(`{
-          "strategies": [
+      if (prompt.includes('Generate 3 patch strategies') || prompt.includes('strategies')) {
+        // Always return valid strategies array to match runtime behavior
+        return Promise.resolve(JSON.stringify({
+          strategies: [
             {
-              "id": "conservative",
-              "label": "CONSERVATIVE",
-              "diff": "--- a/.github/workflows/ci.yml\\n+++ b/.github/workflows/ci.yml\\n@@ -21,3 +21,5 @@\\n       - name: Run tests\\n         run: npm test\\n+        env:\\n+          API_URL: https://api.example.com",
-              "summary": "Add only missing API_URL"
+              id: "conservative",
+              label: "CONSERVATIVE",
+              diff: "--- a/.github/workflows/ci.yml\n+++ b/.github/workflows/ci.yml\n@@ -21,3 +21,5 @@\n       - name: Run tests\n         run: npm test\n+        env:\n+          API_URL: https://api.example.com",
+              summary: "Add only missing API_URL",
+              files: [".github/workflows/ci.yml"]
             },
             {
-              "id": "balanced",
-              "label": "BALANCED",
-              "diff": "--- a/.github/workflows/ci.yml\\n+++ b/.github/workflows/ci.yml\\n@@ -21,3 +21,7 @@\\n       - name: Run tests\\n         run: npm test\\n+        env:\\n+          API_URL: https://api.example.com\\n+          API_TIMEOUT: 30000",
-              "summary": "Add API_URL + timeout"
+              id: "balanced",
+              label: "BALANCED",
+              diff: "--- a/.github/workflows/ci.yml\n+++ b/.github/workflows/ci.yml\n@@ -21,3 +21,7 @@\n       - name: Run tests\n         run: npm test\n+        env:\n+          API_URL: https://api.example.com\n+          API_TIMEOUT: 30000",
+              summary: "Add API_URL + timeout",
+              files: [".github/workflows/ci.yml"]
             },
             {
-              "id": "aggressive",
-              "label": "AGGRESSIVE",
-              "diff": "--- a/.github/workflows/ci.yml\\n+++ b/.github/workflows/ci.yml\\n@@ -21,3 +21,50 @@\\n       - name: Run tests\\n         run: npm test\\n+        env:\\n+          API_URL: https://api.example.com\\n+      - name: Validate environment\\n+        run: node scripts/validate-env.js",
-              "summary": "Add validation layer"
+              id: "aggressive",
+              label: "AGGRESSIVE",
+              diff: "--- a/.github/workflows/ci.yml\n+++ b/.github/workflows/ci.yml\n@@ -21,3 +21,50 @@\n       - name: Run tests\n         run: npm test\n+        env:\n+          API_URL: https://api.example.com\n+      - name: Validate environment\n+        run: node scripts/validate-env.js",
+              summary: "Add validation layer",
+              files: [".github/workflows/ci.yml", "scripts/validate-env.js"]
             }
           ]
-        }`);
+        }));
       } else if (prompt.includes('quality review')) {
-        return Promise.resolve(`{
-          "verdict": "GO",
-          "slop_score": 0.12,
-          "risk_level": "low",
-          "reasons": []
-        }`);
+        return Promise.resolve(JSON.stringify({
+          verdict: "GO",
+          slop_score: 0.12,
+          risk_level: "low",
+          reasons: []
+        }));
       }
       return Promise.resolve('{}');
     });
@@ -118,29 +122,29 @@ describe('patch_options.ts', () => {
 
     test('detects slop in over-engineered patches', async () => {
       (asyncExec.copilotChatAsync as jest.Mock).mockImplementation((prompt: string) => {
-        if (prompt.includes('Generate 3 patch strategies')) {
-          return Promise.resolve(`{
-            "strategies": [
-              {"id": "conservative", "label": "CONSERVATIVE", "diff": "patch", "summary": "test"},
-              {"id": "balanced", "label": "BALANCED", "diff": "patch", "summary": "test"},
-              {"id": "aggressive", "label": "AGGRESSIVE", "diff": "patch", "summary": "test"}
+        if (prompt.includes('Generate 3 patch strategies') || prompt.includes('strategies')) {
+          return Promise.resolve(JSON.stringify({
+            strategies: [
+              {"id": "conservative", "label": "CONSERVATIVE", "diff": "patch", "summary": "test", "files": []},
+              {"id": "balanced", "label": "BALANCED", "diff": "patch", "summary": "test", "files": []},
+              {"id": "aggressive", "label": "AGGRESSIVE", "diff": "patch", "summary": "test", "files": []}
             ]
-          }`);
+          }));
         }
         if (prompt.includes('quality review') && prompt.includes('aggressive')) {
-          return Promise.resolve(`{
-            "verdict": "NO_GO",
-            "slop_score": 0.73,
-            "risk_level": "high",
-            "reasons": ["Over-engineered"]
-          }`);
+          return Promise.resolve(JSON.stringify({
+            verdict: "NO_GO",
+            slop_score: 0.73,
+            risk_level: "high",
+            reasons: ["Over-engineered"]
+          }));
         }
-        return Promise.resolve(`{
-          "verdict": "GO",
-          "slop_score": 0.12,
-          "risk_level": "low",
-          "reasons": []
-        }`);
+        return Promise.resolve(JSON.stringify({
+          verdict: "GO",
+          slop_score: 0.12,
+          risk_level: "low",
+          reasons: []
+        }));
       });
 
       const result = await generatePatchOptions(mockAnalysis, '.test-output');
@@ -189,29 +193,29 @@ describe('patch_options.ts', () => {
 
     test('flags high slop scores', async () => {
       (asyncExec.copilotChatAsync as jest.Mock).mockImplementation((prompt: string) => {
-        if (prompt.includes('Generate 3 patch strategies')) {
-          return Promise.resolve(`{
-            "strategies": [
-              {"id": "conservative", "label": "CONSERVATIVE", "diff": "patch", "summary": "test"},
-              {"id": "balanced", "label": "BALANCED", "diff": "patch", "summary": "test"},
-              {"id": "aggressive", "label": "AGGRESSIVE", "diff": "patch", "summary": "test"}
+        if (prompt.includes('Generate 3 patch strategies') || prompt.includes('strategies')) {
+          return Promise.resolve(JSON.stringify({
+            strategies: [
+              {"id": "conservative", "label": "CONSERVATIVE", "diff": "patch", "summary": "test", "files": []},
+              {"id": "balanced", "label": "BALANCED", "diff": "patch", "summary": "test", "files": []},
+              {"id": "aggressive", "label": "AGGRESSIVE", "diff": "patch", "summary": "test", "files": []}
             ]
-          }`);
+          }));
         }
         if (prompt.includes('aggressive') && prompt.includes('quality')) {
-          return Promise.resolve(`{
-            "verdict": "NO_GO",
-            "slop_score": 0.85,
-            "risk_level": "high",
-            "reasons": []
-          }`);
+          return Promise.resolve(JSON.stringify({
+            verdict: "NO_GO",
+            slop_score: 0.85,
+            risk_level: "high",
+            reasons: []
+          }));
         }
-        return Promise.resolve(`{
-          "verdict": "GO",
-          "slop_score": 0.1,
-          "risk_level": "low",
-          "reasons": []
-        }`);
+        return Promise.resolve(JSON.stringify({
+          verdict: "GO",
+          slop_score: 0.1,
+          risk_level: "low",
+          reasons: []
+        }));
       });
 
       const result = await generatePatchOptions(mockAnalysis, '.test-output');

@@ -115,6 +115,8 @@ copilot-guardian run \
 8. **Retry up to 3 times** if still failing
 9. **Report success** or escalate to human
 
+Safety: auto-heal only applies patches within the allowlist from `analysis.patch_plan.allowed_files`. If the allowlist is empty, it aborts.
+
 **Real output:**
 ```
 [!] AUTO-HEAL MODE ACTIVATED

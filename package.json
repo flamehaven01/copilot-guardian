@@ -1,6 +1,6 @@
 {
   "name": "copilot-guardian",
-  "version": "0.1.0",
+  "version": "0.0.2",
   "description": "Sovereign AI Guardian for GitHub Actions (Copilot CLI Challenge)",
   "main": "dist/cli.js",
   "bin": {

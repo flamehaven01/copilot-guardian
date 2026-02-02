@@ -7,7 +7,6 @@ import { getLastFailedRunId } from "./engine/github";
 import { runGuardian } from "./engine/run";
 import { analyzeRun } from "./engine/analyze";
 import { debugInteractive } from "./engine/debug";
-import { autoHeal } from "./engine/auto-apply";
 import { renderHypotheses, renderPatchSpectrum, renderHeader, renderSummary } from "./ui/dashboard";
 import { checkGHCLI, checkCopilotCLI } from "./engine/async-exec";
 
@@ -110,9 +109,23 @@ program
             const fs = await import('fs/promises');
             const diffContent = await fs.readFile(bestPatch.patchPath, 'utf-8');
             
+            const allowedFilesRaw = res.analysis?.patch_plan?.allowed_files ?? [];
+            const allowedFiles = allowedFilesRaw.filter((f: any) => typeof f === "string" && f.trim().length > 0);
+
+            if (allowedFiles.length === 0) {
+              throw new Error("Allowlist is empty; refusing to apply patch.");
+            }
+
+            if (Array.isArray(bestPatch.files) && bestPatch.files.length > 0) {
+              const unexpected = bestPatch.files.filter((f: any) => !allowedFiles.includes(f));
+              if (unexpected.length > 0) {
+                throw new Error(`Patch touches files outside allowlist: ${unexpected.join(", ")}`);
+              }
+            }
+
             // Apply with safety checks
             const modifiedFiles = await applyPatchViaDiff(diffContent, false, {
-              allowedFiles: bestPatch.files,
+              allowedFiles,
               repoRoot: process.cwd()
             });
             
@@ -209,36 +222,5 @@ program
       process.exit(1);
     }
   });
-
-/**
- * Parse unified diff and apply via git apply (safe method)
- * WARNING: Simplified implementation - use git apply for safety
- */
-async function applyPatchViaDiff(patchPath: string, dryRun = false): Promise<string[]> {
-  const { execAsync } = await import('./engine/async-exec');
-  const { readFile } = await import('fs/promises');
-  
-  try {
-    // Use git apply for safe patch application
-    const args = ['apply', '--verbose'];
-    if (dryRun) args.push('--check');
-    args.push(patchPath);
-    
-    await execAsync('git', args);
-    
-    // Extract modified files from patch
-    const patchContent = await readFile(patchPath, 'utf-8');
-    const files: string[] = [];
-    const fileMatches = patchContent.matchAll(/^diff --git a\/(.+?) b\/(.+?)$/gm);
-    
-    for (const match of fileMatches) {
-      files.push(match[2]);
-    }
-    
-    return files;
-  } catch (error) {
-    throw new Error(`Patch application failed: ${error}`);
-  }
-}
 
 program.parse(process.argv);

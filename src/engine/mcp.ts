@@ -60,7 +60,11 @@ export async function ensureMCPConfigured(): Promise<boolean> {
   console.log(chalk.cyan('[>] Installing GitHub MCP server...'));
 
   try {
+    // Check if npm is available
+    execSync('npm --version', { stdio: 'pipe' });
+    
     // Install GitHub MCP server package
+    console.log(chalk.dim('    This may require administrator/sudo permissions...'));
     execSync('npm install -g @modelcontextprotocol/server-github', {
       stdio: 'inherit'
     });
@@ -68,7 +72,12 @@ export async function ensureMCPConfigured(): Promise<boolean> {
     console.log(chalk.green('[+] GitHub MCP server installed'));
   } catch (error: any) {
     console.log(chalk.red('[-] Failed to install GitHub MCP server'));
-    console.log(chalk.dim('    You can try manually: npm install -g @modelcontextprotocol/server-github'));
+    console.log(chalk.yellow('    Possible reasons:'));
+    console.log(chalk.dim('      - npm not in PATH'));
+    console.log(chalk.dim('      - No permission for global install'));
+    console.log(chalk.dim('      - Corporate firewall/proxy blocking'));
+    console.log(chalk.dim('    Manual workaround: npm install -g @modelcontextprotocol/server-github'));
+    console.log(chalk.dim('    Or use npx: npx -y @modelcontextprotocol/server-github'));
     return false;
   }
 
