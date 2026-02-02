@@ -6,10 +6,17 @@
 
 **The AI That Heals Your CI While You Sleep** 🌙 → ☀️
 
-When you wake up, your GitHub Actions are green. Guardian fixed them overnight.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Sovereign AI](https://img.shields.io/badge/Sovereign-AI-8A2BE2.svg?style=flat-square&logo=githubactions&logoColor=white)](https://dev.to/flamehaven)
+[![Anti-Slop Certified](https://img.shields.io/badge/Anti--Slop-Certified-00C853.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian)
+[![Copilot CLI Challenge](https://img.shields.io/badge/GitHub-Copilot_Challenge-181717.svg?style=flat-square&logo=github&logoColor=white)](https://dev.to/challenges/github-2026-01-21)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Model Context Protocol](https://img.shields.io/badge/MCP-Enabled-FF5722.svg?style=flat-square)](https://modelcontextprotocol.io/)
+[![Node.js: >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg?style=flat-square)](https://nodejs.org/)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node.js: >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
+**Multi-Hypothesis CI Debugger • Risk-Aware Patching • Complete Transparency**
+
+[Features](#winning-features) • [Installation](#quick-start-5-minutes) • [Philosophy](#sovereign-ai-philosophy) • [Demo](docs/BEFORE_AFTER_IMPACT.md)
 
 </div>
 
