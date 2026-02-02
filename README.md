@@ -195,68 +195,46 @@ copilot-guardian debug \
 
 ### Architecture
 
+> **[📐 Full Technical Architecture](docs/ARCHITECTURE.md)** - Complete system design with detailed diagrams
+
+```mermaid
+graph TB
+    A[GitHub Actions Failure] --> B[Guardian CLI]
+    B --> C[Context Fetcher]
+    C --> D[Multi-Hypothesis Engine]
+    D --> E[Copilot Chat API]
+    E --> F[Hypothesis Validator]
+    F --> G[Patch Generator]
+    G --> H[Quality Reviewer]
+    H --> I{Anti-Slop Check}
+    I -->|Pass| J[Patch Spectrum]
+    I -->|Fail| K[Reject]
+    J --> L[Conservative]
+    J --> M[Balanced]
+    J --> N[Aggressive]
+    L & M & N --> O[User Selection]
+    O --> P[Auto-Apply Engine]
+    P --> Q[Git Commit & Push]
+    Q --> R[CI Retry]
+    R --> S{Success?}
+    S -->|Yes| T[Report Victory]
+    S -->|No| D
+    
+    style D fill:#1E293B,stroke:#0DD9FF,stroke-width:2px
+    style I fill:#1E293B,stroke:#E293FF,stroke-width:2px
+    style P fill:#1E293B,stroke:#00FF88,stroke-width:2px
 ```
-┌─────────────────────────────────────────────┐
-│  GitHub Actions Run (Failed)                │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│  Step 1: Fetch Context                      │
-│  - Workflow YAML                            │
-│  - Job logs (redacted)                      │
-│  - Run metadata                             │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│  Step 2: Multi-Hypothesis Analysis          │
-│  (via GitHub Copilot CLI)                   │
-│                                             │
-│  H1: Missing env var [89%]                  │
-│  H2: Version mismatch [8%]                  │
-│  H3: Network timeout [3%]                   │
-│                                             │
-│  → Selected: H1                             │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│  Step 3: Generate Patch Options             │
-│  (via GitHub Copilot CLI)                   │
-│                                             │
-│  Conservative: +2 lines [GO]                │
-│  Balanced:     +5 lines [GO]                │
-│  Aggressive:  +47 lines [NO-GO, SLOP]       │
-│                                             │
-│  → Recommended: Conservative                │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│  Step 4: Quality Review                     │
-│  (via GitHub Copilot CLI)                   │
-│                                             │
-│  Security: ✓ No weakening                   │
-│  Slop:     ✓ No over-engineering            │
-│  Scope:    ✓ Only allowed files             │
-│                                             │
-│  Verdict: GO                                │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│  Output Artifacts (all local)               │
-│                                             │
-│  - reasoning_trace.json                     │
-│  - patch_options.json                       │
-│  - fix.conservative.patch                   │
-│  - fix.balanced.patch                       │
-│  - fix.aggressive.patch                     │
-│  - quality.*.json                           │
-│  - *.raw.txt (all Copilot responses)        │
-└─────────────────────────────────────────────┘
-```
+
+**Key Components:**
+
+| Layer | Module | Purpose |
+|-------|--------|---------|
+| Detection | `github.ts` | Capture failure context from GitHub Actions |
+| Intelligence | `analyze.ts`, `mcp.ts` | Multi-hypothesis reasoning with MCP |
+| Decision | `patch_options.ts` | Generate risk-calibrated strategies |
+| Validation | Quality Review | Anti-slop filter + security checks |
+| Action | `auto-apply.ts` | File patching + git automation |
+| Verification | Status monitor | CI retry loop until success |
 
 ### The Five Layers of Copilot CLI Usage
 
