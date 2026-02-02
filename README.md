@@ -7,6 +7,8 @@ When you wake up, your GitHub Actions are green. Guardian fixed them overnight.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js: >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
 
+> **[📊 See the Before/After Impact Report](docs/BEFORE_AFTER_IMPACT.md)** - Real developer time savings (2.5 hours → 2 minutes)
+
 ---
 
 ## The Liberation Promise
