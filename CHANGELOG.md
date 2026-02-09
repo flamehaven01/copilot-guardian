@@ -5,6 +5,44 @@ All notable changes to Copilot Guardian will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-02-09
+
+### 🎯 SDK Integration Complete + Production Ready
+
+This release represents the culmination of our SDK migration journey - a complete, battle-tested integration with comprehensive resource management and test coverage.
+
+#### Highlights
+- **Full SDK Lifecycle Management**: All resource leaks eliminated
+- **Test Coverage Solidified**: 4 dedicated SDK tests with proper mocking
+- **Production Robustness**: Timer cleanup, promise reset, race condition handling
+
+### Fixed (Robustness - 4 LOW priority issues)
+
+- **[LOW-1] Timeout Timer Leak**: `clearTimeout(timeoutId)` now called on both success and error paths
+  - File: `async-exec.ts:229-255`
+  - Impact: No orphan timers in long-running sessions
+
+- **[LOW-2] SDK Client Promise Reset**: `_sdkClientPromise = null` on initialization failure
+  - File: `async-exec.ts:52-56`
+  - Impact: Retry capability after transient network failures
+
+- **[LOW-3] closeSdkClient Race Condition**: Await pending init before cleanup
+  - File: `async-exec.ts:63-76`
+  - Impact: Clean shutdown even during initialization
+
+- **[LOW-4] Test Mock Isolation**: `resetMocks()` in beforeEach
+  - File: `async-exec.test.ts:4,17`
+  - Impact: No test pollution between runs
+
+### Technical Notes
+
+- SDK session lifecycle: `createSession()` → `send()` → `destroy()` (always in finally block)
+- Timer management: Store `timeoutId`, clear in both try/catch paths
+- Promise state: Reset to `null` on rejection to enable retry
+- Shutdown sequence: await `_sdkClientPromise` → stop `_sdkClient` → reset promise
+
+---
+
 ## [0.1.1] - 2026-02-09
 
 ### 🚀 MAJOR: Copilot SDK Migration + Robustness Overhaul
