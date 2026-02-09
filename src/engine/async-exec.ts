@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import ora, { Ora } from 'ora';
 import chalk from 'chalk';
+import { CopilotClient } from '@github/copilot-sdk';
 
 export interface ExecOptions {
   showSpinner?: boolean;
@@ -28,6 +29,50 @@ export class CopilotError extends Error {
     super(`Copilot CLI error: ${message}`);
     this.name = 'CopilotError';
   }
+}
+
+// Singleton client for SDK - lazy initialization
+let _sdkClient: CopilotClient | null = null;
+let _sdkClientPromise: Promise<CopilotClient> | null = null;
+
+async function getSdkClient(): Promise<CopilotClient> {
+  if (_sdkClient) return _sdkClient;
+  
+  if (_sdkClientPromise) return _sdkClientPromise;
+  
+  _sdkClientPromise = (async () => {
+    const client = new CopilotClient({
+      autoStart: true,
+      autoRestart: true,
+      useLoggedInUser: true,
+    });
+    await client.start();
+    _sdkClient = client;
+    return client;
+  })().catch((error) => {
+    // Reset promise on failure to allow retry
+    _sdkClientPromise = null;
+    throw error;
+  });
+  
+  return _sdkClientPromise;
+}
+
+// Cleanup function for graceful shutdown
+export async function closeSdkClient(): Promise<void> {
+  // Wait for any in-flight initialization to complete
+  if (_sdkClientPromise) {
+    try {
+      await _sdkClientPromise;
+    } catch {
+      // Ignore initialization errors during cleanup
+    }
+  }
+  if (_sdkClient) {
+    await _sdkClient.stop();
+    _sdkClient = null;
+  }
+  _sdkClientPromise = null;
 }
 
 /**
@@ -148,7 +193,7 @@ export async function execWithRetry(
 }
 
 /**
- * Call GitHub Copilot CLI with retry logic
+ * Call GitHub Copilot via SDK with retry logic
  */
 export async function copilotChatAsync(
   prompt: string,
@@ -156,45 +201,110 @@ export async function copilotChatAsync(
 ): Promise<string> {
   const fullOptions: ExecOptions = {
     showSpinner: true,
-    spinnerText: '[>] Asking Copilot CLI...',
+    spinnerText: '[>] Asking Copilot SDK...',
     timeout: 90000,
     retries: 2,
     ...options
   };
 
-  try {
-    const result = await execWithRetry(
-      'gh',
-      ['copilot', 'chat', '--quiet'],
-      prompt,
-      fullOptions
-    );
+  const spinner: Ora | null = fullOptions.showSpinner ? ora(fullOptions.spinnerText).start() : null;
+  const maxRetries = fullOptions.retries ?? 2;
+  let lastError: Error | null = null;
 
-    return result;
-  } catch (error: any) {
-    // Null-safe error message access
-    const errorMsg = error?.message || '';
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let session: Awaited<ReturnType<CopilotClient['createSession']>> | null = null;
     
-    if (errorMsg.includes('not found')) {
-      throw new CopilotError(
-        'GitHub CLI not installed. Install: https://cli.github.com'
-      );
-    }
+    try {
+      if (attempt > 1 && spinner) {
+        spinner.text = `${fullOptions.spinnerText} (attempt ${attempt}/${maxRetries})`;
+      }
 
-    if (errorMsg.includes('not authenticated')) {
-      throw new CopilotError(
-        'Not authenticated. Run: gh auth login'
-      );
-    }
+      const client = await getSdkClient();
+      
+      session = await client.createSession({
+        model: process.env.COPILOT_MODEL || 'gpt-4o',
+      });
 
-    if (errorMsg.includes('copilot') && errorMsg.includes('not found')) {
-      throw new CopilotError(
-        'Copilot CLI not enabled. Install: gh extension install github/gh-copilot'
-      );
-    }
+      // Set up timeout with cleanup
+      let timeoutId: NodeJS.Timeout | null = null;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new TimeoutError(fullOptions.timeout!)), fullOptions.timeout);
+      });
 
-    throw error;
+      // Send and wait for response
+      const responsePromise = session.sendAndWait({ prompt });
+      
+      try {
+        const response = await Promise.race([responsePromise, timeoutPromise]);
+        
+        // Clear timeout on success
+        if (timeoutId) clearTimeout(timeoutId);
+
+        const content = response?.data?.content || '';
+        
+        if (!content) {
+          throw new CopilotError('Empty response from Copilot SDK. The model may be unavailable or the prompt was rejected.');
+        }
+        
+        spinner?.succeed('[+] Copilot SDK response received');
+        return content;
+      } catch (raceError) {
+        // Clear timeout on error too
+        if (timeoutId) clearTimeout(timeoutId);
+        throw raceError;
+      }
+
+    } catch (error: any) {
+      lastError = error;
+      const errorMsg = error?.message || '';
+
+      // Handle rate limiting
+      if (errorMsg.includes('rate limit') || error instanceof RateLimitError) {
+        if (spinner) spinner.text = chalk.yellow(`[!] Rate limited. Waiting 60s before retry ${attempt}/${maxRetries}...`);
+        await sleep(60000);
+        continue;
+      }
+
+      // Handle timeout
+      if (error instanceof TimeoutError) {
+        if (spinner) spinner.text = chalk.yellow(`[!] Timeout. Retrying ${attempt}/${maxRetries}...`);
+        await sleep(5000);
+        continue;
+      }
+
+      // Handle auth errors
+      if (errorMsg.includes('not authenticated') || errorMsg.includes('auth')) {
+        spinner?.fail();
+        throw new CopilotError(
+          'Not authenticated. Run: gh auth login'
+        );
+      }
+
+      // Handle Copilot CLI not found
+      if (errorMsg.includes('copilot') && errorMsg.includes('not found')) {
+        spinner?.fail();
+        throw new CopilotError(
+          'Copilot CLI not found. Ensure GitHub Copilot CLI is installed.'
+        );
+      }
+
+      // Non-retryable error
+      spinner?.fail();
+      throw error;
+    } finally {
+      // Always cleanup session to prevent leaks (SDK-1 fix)
+      if (session) {
+        try {
+          await session.destroy();
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    }
   }
+
+  spinner?.fail();
+  throw lastError!;
 }
 
 /**
@@ -240,14 +350,13 @@ export async function checkGHCLI(): Promise<boolean> {
 }
 
 /**
- * Test if Copilot CLI is available
+ * Test if Copilot SDK is available (replaces old gh copilot check)
  */
 export async function checkCopilotCLI(): Promise<boolean> {
   try {
-    await execAsync('gh', ['copilot', '--version'], undefined, {
-      showSpinner: false,
-      timeout: 5000
-    });
+    // SDK-5: Check SDK client initialization instead of gh copilot extension
+    const client = await getSdkClient();
+    await client.ping();
     return true;
   } catch {
     return false;

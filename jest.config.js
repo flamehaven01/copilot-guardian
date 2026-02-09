@@ -16,5 +16,9 @@ module.exports = {
       lines: 70,
       statements: 70
     }
-  }
+  },
+  moduleNameMapper: {
+    '^@github/copilot-sdk$': '<rootDir>/tests/__mocks__/@github/copilot-sdk.ts'
+  },
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts']
 };

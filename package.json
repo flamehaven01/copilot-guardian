@@ -16,6 +16,7 @@
     "lint": "node -e \"console.log('lint: skipped (MVP)')\""
   },
   "dependencies": {
+    "@github/copilot-sdk": "^0.1.23",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "chalk": "^4.1.2",

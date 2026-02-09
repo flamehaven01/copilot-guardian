@@ -121,7 +121,7 @@ export async function analyzeRun(repo: string, runId: number, outDir = path.join
   } catch (parseError: any) {
     console.log(chalk.red('[-] JSON parsing failed'));
     console.log(chalk.dim('    Raw response saved to copilot.analysis.raw.txt'));
-    throw new Error(`Copilot returned invalid JSON: ${parseError.message}\n\nHint: Check if Copilot CLI is working: gh copilot chat "test"`);
+    throw new Error(`Copilot returned invalid JSON: ${parseError.message}\n\nHint: Check if Copilot SDK is working. Ensure you're authenticated: gh auth login`);
   }
   
   // Validate with fallback

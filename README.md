@@ -227,7 +227,9 @@ All analysis saved to `.copilot-guardian/`:
 
 - Node.js >=18
 - GitHub CLI (`gh`) installed and authenticated
-- GitHub Copilot CLI enabled (`gh copilot`)
+- GitHub Copilot subscription (for SDK access)
+
+> **Technical Note**: This project uses the official `@github/copilot-sdk` for Copilot integration, providing reliable programmatic access to Copilot's AI capabilities.
 
 ### Installation
 
@@ -440,7 +442,7 @@ Part of the broader Flamehaven AI governance research ecosystem.
 
 ## Acknowledgments
 
-- GitHub Copilot CLI team for the amazing tool
+- GitHub Copilot team for the [@github/copilot-sdk](https://www.npmjs.com/package/@github/copilot-sdk)
 - The Sovereign AI research community
 - All contributors and testers
 

@@ -8,7 +8,27 @@ import { runGuardian } from "./engine/run";
 import { analyzeRun } from "./engine/analyze";
 import { debugInteractive } from "./engine/debug";
 import { renderHypotheses, renderPatchSpectrum, renderHeader, renderSummary } from "./ui/dashboard";
-import { checkGHCLI, checkCopilotCLI } from "./engine/async-exec";
+import { checkGHCLI, checkCopilotCLI, closeSdkClient } from "./engine/async-exec";
+
+// SDK-2: Graceful shutdown - cleanup SDK client on exit
+async function cleanup() {
+  await closeSdkClient();
+}
+
+process.on('SIGINT', async () => {
+  await cleanup();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await cleanup();
+  process.exit(0);
+});
+
+process.on('exit', () => {
+  // Note: async operations may not complete in 'exit' handler
+  // The SIGINT/SIGTERM handlers above handle graceful shutdown
+});
 
 const program = new Command();
 

@@ -1,6 +1,7 @@
-import { execAsync, ghAsync, copilotChatAsync, sleep } from '../src/engine/async-exec';
+import { execAsync, ghAsync, copilotChatAsync, sleep, closeSdkClient } from '../src/engine/async-exec';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
+import { mockSession, mockClient, resetMocks } from './__mocks__/@github/copilot-sdk';
 
 jest.mock('child_process');
 
@@ -13,6 +14,7 @@ describe('async-exec.ts', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    resetMocks(); // Reset SDK mocks
     
     // Create mock process
     mockProcess = new EventEmitter();
@@ -25,6 +27,11 @@ describe('async-exec.ts', () => {
     mockProcess.kill = jest.fn();
     
     (spawn as jest.Mock).mockReturnValue(mockProcess);
+  });
+
+  afterAll(async () => {
+    // Cleanup SDK client
+    await closeSdkClient();
   });
 
   describe('execAsync', () => {
@@ -135,54 +142,61 @@ describe('async-exec.ts', () => {
   });
 
   describe('copilotChatAsync', () => {
-    test('sends prompt to gh copilot', async () => {
-      const promise = copilotChatAsync('test prompt');
+    test('sends prompt to Copilot SDK', async () => {
+      mockSession.sendAndWait.mockResolvedValue({
+        data: { content: 'SDK response content' }
+      });
       
-      setTimeout(() => {
-        mockProcess.stdout.emit('data', Buffer.from('copilot response'));
-        mockProcess.emit('close', 0);
-      }, 10);
+      const result = await copilotChatAsync('test prompt', { showSpinner: false });
       
-      const result = await promise;
+      expect(mockClient.createSession).toHaveBeenCalledWith(
+        expect.objectContaining({ model: expect.any(String) })
+      );
+      expect(mockSession.sendAndWait).toHaveBeenCalledWith({ prompt: 'test prompt' });
+      expect(mockSession.destroy).toHaveBeenCalled();
+      expect(result).toBe('SDK response content');
+    });
+
+    test('destroys session on success', async () => {
+      mockSession.sendAndWait.mockResolvedValue({
+        data: { content: 'test response' }
+      });
       
-      // Aligned with actual implementation: ['copilot', 'chat', '-q', '<prompt>']
-      expect(spawn).toHaveBeenCalledWith('gh', expect.arrayContaining(['copilot', 'chat']), expect.any(Object));
-      expect(result).toContain('copilot response');
+      await copilotChatAsync('test prompt', { showSpinner: false });
+      
+      expect(mockSession.destroy).toHaveBeenCalled();
+    });
+
+    test('destroys session on error (SDK-1 leak fix)', async () => {
+      mockSession.sendAndWait.mockRejectedValue(new Error('SDK error'));
+      
+      await expect(copilotChatAsync('test prompt', { showSpinner: false, retries: 1 }))
+        .rejects.toThrow();
+      
+      // Session should still be destroyed in finally block
+      expect(mockSession.destroy).toHaveBeenCalled();
+    });
+
+    test('throws CopilotError on empty response (SDK-7)', async () => {
+      mockSession.sendAndWait.mockResolvedValue({
+        data: { content: '' }
+      });
+      
+      await expect(copilotChatAsync('test prompt', { showSpinner: false, retries: 1 }))
+        .rejects.toThrow('Empty response from Copilot SDK');
     });
 
     test.skip('handles rate limit errors', async () => {
       // SKIP: Retry logic triggers 60s delays even with retries:0
       // Manual verification: Rate limit handling works in production
-      const promise = copilotChatAsync('test prompt', { retries: 0 });
-      
-      setTimeout(() => {
-        mockProcess.stderr.emit('data', Buffer.from('rate limit exceeded'));
-        mockProcess.emit('close', 1);
-      }, 10);
-      
-      await expect(promise).rejects.toThrow();
     }, 5000);
 
     test.skip('shows spinner during long operation', async () => {
       // SKIP: Async mock interactions are unstable
-      const promise = copilotChatAsync('test prompt', { showSpinner: true, retries: 0 });
-      
-      setTimeout(() => {
-        mockProcess.emit('close', 0);
-      }, 10);
-      
-      await promise;
-      
-      expect(spawn).toHaveBeenCalled();
     });
 
     test.skip('handles timeout gracefully', async () => {
-      // SKIP: Error message null safety check causes different error paths
-      const promise = copilotChatAsync('test prompt', { timeout: 100, retries: 0 });
-      
-      // Don't emit close - let it timeout
-      
-      await expect(promise).rejects.toThrow('Operation timed out after 100ms');
+      // SKIP: Timeout testing requires real timing
     }, 5000);
   });
 
