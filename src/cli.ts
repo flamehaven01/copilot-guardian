@@ -3,12 +3,12 @@
 import { Command } from "commander";
 import chalk from "chalk";
 
-import { getLastFailedRunId } from "./engine/github";
-import { runGuardian } from "./engine/run";
-import { analyzeRun } from "./engine/analyze";
-import { debugInteractive } from "./engine/debug";
-import { renderHypotheses, renderPatchSpectrum, renderHeader, renderSummary } from "./ui/dashboard";
-import { checkGHCLI, checkCopilotCLI, closeSdkClient } from "./engine/async-exec";
+import { getLastFailedRunId } from "./engine/github.js";
+import { runGuardian } from "./engine/run.js";
+import { analyzeRun } from "./engine/analyze.js";
+import { debugInteractive } from "./engine/debug.js";
+import { renderHypotheses, renderPatchSpectrum, renderHeader, renderSummary } from "./ui/dashboard.js";
+import { checkGHCLI, checkCopilotCLI, closeSdkClient } from "./engine/async-exec.js";
 
 // SDK-2: Graceful shutdown - cleanup SDK client on exit
 async function cleanup() {
@@ -35,7 +35,7 @@ const program = new Command();
 program
   .name("copilot-guardian")
   .description(chalk.cyan("[#] Sovereign AI Guardian for GitHub Actions"))
-  .version("0.1.2");
+  .version("0.1.3");
 
 program
   .command("auth")
@@ -55,10 +55,10 @@ program
     
     const hasCopilot = await checkCopilotCLI();
     if (hasCopilot) {
-      console.log(chalk.green("[+] GitHub Copilot CLI: Installed"));
+      console.log(chalk.green("[+] GitHub Copilot SDK: Available"));
     } else {
-      console.log(chalk.red("[-] GitHub Copilot CLI: Not found"));
-      console.log(chalk.dim("    Install: gh extension install github/gh-copilot"));
+      console.log(chalk.red("[-] GitHub Copilot SDK: Not available"));
+      console.log(chalk.dim("    Install: npm install @github/copilot-sdk"));
       process.exit(1);
     }
     
@@ -122,8 +122,8 @@ program
           
           // Apply patch using git apply (safe method)
           try {
-            const { applyPatchViaDiff, checkCIStatus } = await import('./engine/auto-apply');
-            const { execAsync } = await import('./engine/async-exec');
+            const { applyPatchViaDiff, checkCIStatus } = await import('./engine/auto-apply.js');
+            const { execAsync } = await import('./engine/async-exec.js');
             
             // Read patch content
             const fs = await import('fs/promises');

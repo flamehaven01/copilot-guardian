@@ -1,6 +1,6 @@
 import chalk from "chalk";
-import { ghAsync } from "./async-exec";
-import { redactSecrets, clampText } from "./util";
+import { ghAsync } from "./async-exec.js";
+import { redactSecrets, clampText } from "./util.js";
 
 export type RunContext = {
   repo: string;

@@ -2,10 +2,10 @@ import path from "node:path";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
-import { analyzeRun } from "./analyze";
-import { generatePatchOptions } from "./patch_options";
-import { ensureDir, loadText, writeText, extractJsonObject, PACKAGE_ROOT } from "./util";
-import { copilotChatAsync } from "./async-exec";
+import { analyzeRun } from "./analyze.js";
+import { generatePatchOptions } from "./patch_options.js";
+import { ensureDir, loadText, writeText, extractJsonObject, PACKAGE_ROOT } from "./util.js";
+import { copilotChatAsync } from "./async-exec.js";
 
 /**
  * Async wrapper for copilot chat (replaces blocking execSync)

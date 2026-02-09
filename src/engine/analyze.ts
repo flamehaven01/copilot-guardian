@@ -1,10 +1,10 @@
 import path from "node:path";
 import chalk from "chalk";
 
-import { fetchRunContext, RunContext } from "./github";
-import { copilotChatAsync } from "./async-exec";
-import { ensureMCPConfigured, enhancePromptWithMCP, saveMCPUsageLog } from "./mcp";
-import { enhanceContextWithSources, formatSourceContextForPrompt } from "./context-enhancer";
+import { fetchRunContext, RunContext } from "./github.js";
+import { copilotChatAsync } from "./async-exec.js";
+import { ensureMCPConfigured, enhancePromptWithMCP, saveMCPUsageLog } from "./mcp.js";
+import { enhanceContextWithSources, formatSourceContextForPrompt } from "./context-enhancer.js";
 import {
   ensureDir,
   loadText,
@@ -13,7 +13,7 @@ import {
   extractJsonObject,
   validateJson,
   PACKAGE_ROOT
-} from "./util";
+} from "./util.js";
 
 export interface Hypothesis {
   id: string;

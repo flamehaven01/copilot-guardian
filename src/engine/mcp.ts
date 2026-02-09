@@ -223,7 +223,7 @@ export async function testMCPConnection(): Promise<boolean> {
   console.log(chalk.cyan('[>] Testing MCP connection...'));
   
   try {
-    const { copilotChatAsync } = await import('./async-exec');
+    const { copilotChatAsync } = await import('./async-exec.js');
     
     const testPrompt = 'Using @github MCP server, list my repositories (first 3 only)';
     const response = await copilotChatAsync(testPrompt, {

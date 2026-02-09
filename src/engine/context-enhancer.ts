@@ -3,7 +3,7 @@
  * Deep Intelligence: Extract source files mentioned in errors for pinpoint diagnosis
  */
 
-import { ghAsync } from './async-exec';
+import { ghAsync } from './async-exec.js';
 import chalk from 'chalk';
 
 export interface SourceContext {

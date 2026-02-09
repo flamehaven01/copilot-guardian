@@ -26,7 +26,7 @@ export class RateLimitError extends Error {
 
 export class CopilotError extends Error {
   constructor(message: string) {
-    super(`Copilot CLI error: ${message}`);
+    super(`Copilot SDK error: ${message}`);
     this.name = 'CopilotError';
   }
 }
@@ -280,11 +280,11 @@ export async function copilotChatAsync(
         );
       }
 
-      // Handle Copilot CLI not found
+      // Handle Copilot SDK not found
       if (errorMsg.includes('copilot') && errorMsg.includes('not found')) {
         spinner?.fail();
         throw new CopilotError(
-          'Copilot CLI not found. Ensure GitHub Copilot CLI is installed.'
+          'Copilot SDK unavailable. Ensure @github/copilot-sdk is installed.'
         );
       }
 

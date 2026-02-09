@@ -3,7 +3,7 @@
  * Self-Healing Engine: Applies patches automatically and validates CI
  */
 
-import { execAsync } from './async-exec';
+import { execAsync } from './async-exec.js';
 import { writeFile, readFile } from 'fs/promises';
 import { resolve } from 'path';
 import chalk from 'chalk';

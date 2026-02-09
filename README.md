@@ -7,8 +7,8 @@
 **The AI That Heals Your CI While You Sleep** 🌙 → ☀️
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Tests: Passing](https://img.shields.io/badge/tests-38%20passing-brightgreen.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian)
-[![Version: 0.1.2](https://img.shields.io/badge/version-0.1.2-blue.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian/releases)
+[![Tests: Passing](https://img.shields.io/badge/tests-41%20passing-brightgreen.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian)
+[![Version: 0.1.3](https://img.shields.io/badge/version-0.1.3-blue.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian/releases)
 [![Sovereign AI](https://img.shields.io/badge/Sovereign-AI-8A2BE2.svg?style=flat-square&logo=githubactions&logoColor=white)](https://dev.to/flamehaven)
 [![Anti-Slop Certified](https://img.shields.io/badge/Anti--Slop-Certified-00C853.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian)
 [![Copilot CLI Challenge](https://img.shields.io/badge/GitHub-Copilot_Challenge-181717.svg?style=flat-square&logo=github&logoColor=white)](https://dev.to/challenges/github-2026-01-21)
@@ -280,7 +280,7 @@ graph TB
     A[GitHub Actions Failure] --> B[Guardian CLI]
     B --> C[Context Fetcher]
     C --> D[Multi-Hypothesis Engine]
-    D --> E[Copilot Chat API]
+    D --> E[Copilot SDK]
     E --> F[Hypothesis Validator]
     F --> G[Patch Generator]
     G --> H[Quality Reviewer]
@@ -314,7 +314,7 @@ graph TB
 | Action | `auto-apply.ts` | File patching + git automation |
 | Verification | Status monitor | CI retry loop until success |
 
-### The Five Layers of Copilot CLI Usage
+### The Five Layers of Copilot SDK Usage
 
 This project showcases GitHub Copilot CLI in five distinct ways:
 

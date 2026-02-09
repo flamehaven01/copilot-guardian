@@ -1,9 +1,9 @@
 import path from "node:path";
 import chalk from "chalk";
 
-import { analyzeRun } from "./analyze";
-import { generatePatchOptions } from "./patch_options";
-import { ensureDir, writeJson, writeText } from "./util";
+import { analyzeRun } from "./analyze.js";
+import { generatePatchOptions } from "./patch_options.js";
+import { ensureDir, writeJson, writeText } from "./util.js";
 
 export type RunFlags = {
   showReasoning?: boolean;

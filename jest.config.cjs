@@ -18,7 +18,19 @@ module.exports = {
     }
   },
   moduleNameMapper: {
-    '^@github/copilot-sdk$': '<rootDir>/tests/__mocks__/@github/copilot-sdk.ts'
+    '^@github/copilot-sdk$': '<rootDir>/tests/__mocks__/@github/copilot-sdk.ts',
+    '^(\\.{1,2}/.*)\\.js$': '$1'
   },
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts']
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      useESM: false,
+      tsconfig: {
+        module: 'CommonJS',
+        moduleResolution: 'Node',
+        esModuleInterop: true,
+        isolatedModules: true
+      }
+    }]
+  }
 };

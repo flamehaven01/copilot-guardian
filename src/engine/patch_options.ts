@@ -1,7 +1,7 @@
 import path from "node:path";
 import chalk from "chalk";
 
-import { copilotChatAsync } from "./async-exec";
+import { copilotChatAsync } from "./async-exec.js";
 import {
   ensureDir,
   loadText,
@@ -10,7 +10,7 @@ import {
   extractJsonObject,
   validateJson,
   PACKAGE_ROOT
-} from "./util";
+} from "./util.js";
 
 type StrategyId = "conservative" | "balanced" | "aggressive";
 

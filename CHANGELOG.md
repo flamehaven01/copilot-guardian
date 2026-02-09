@@ -5,6 +5,21 @@ All notable changes to Copilot Guardian will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-02-09
+
+### 🔧 Final Polish & SDK Terminology Alignment
+
+Cosmetic fixes to align all user-facing messages with the SDK-based architecture.
+
+#### Changed
+- **Error Messages**: Updated all "Copilot CLI" references to "Copilot SDK"
+  - `CopilotError` now shows "Copilot SDK error:" prefix
+  - Auth check shows "GitHub Copilot SDK: Available/Not available"
+  - Install hint updated to `npm install @github/copilot-sdk`
+- **README**: Updated architecture diagram label "Copilot Chat API" → "Copilot SDK"
+- **README**: Renamed section "Five Layers of Copilot CLI Usage" → "Five Layers of Copilot SDK Usage"
+- **CHANGELOG**: Removed duplicate section header
+
 ## [0.1.2] - 2026-02-09
 
 ### 🎯 SDK Integration Complete + Production Ready
@@ -84,8 +99,6 @@ This journey demonstrates real-world engineering: recognizing when an approach i
   - `__mocks__/@github/copilot-sdk.ts` - Complete mock implementation
   - `resetMocks()` helper for test isolation
   - Dedicated SDK test cases (session destroy, empty response, timeout)
-
-### Fixed (SIDRCE Audit - SEVERE 5 issues)
 
 ### Fixed (SEVERE - 5 issues)
 
