@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.4] - 2026-02-10
 
-### 🎨 UI/UX Enhancements for Real Execution Transparency
+### 🎨 UI/UX Enhancements + Critical Parser Fix
 
-This release focuses on **visual feedback improvements** to make Guardian's reasoning process completely visible during real execution recording.
+This release focuses on **visual feedback improvements** and **response handling robustness** to make Guardian production-ready for real execution recording.
 
 #### Added
 - **Enhanced Progress Indicators**: Step-by-step status messages throughout analysis pipeline
@@ -28,6 +28,16 @@ This release focuses on **visual feedback improvements** to make Guardian's reas
   - **[RECOMMENDED]** marker for lowest-risk GO strategy
   - Files affected by each patch (extracted from diff)
   - Slop detection threshold adjusted (>50% instead of >60%)
+
+#### Fixed
+- **Critical: JSON Parser Enhancement** - Copilot SDK timeout and response handling
+  - Fixed missing timeout parameter in `session.sendAndWait()` (was using SDK default 60s, now explicit 90s)
+  - Enhanced `extractJsonObject()` to handle markdown code blocks and various response formats
+  - Improved error messages with response preview (first 300 chars) for debugging
+  - Strengthened prompt to emphasize JSON format requirement
+  - Parser now gracefully handles both pure JSON and JSON embedded in markdown
+  
+  **Impact**: Eliminates timeout errors and handles Copilot response format variations gracefully. Critical for production reliability.
   - Clear NO-GO explanation when all strategies flagged
   
 - **Complete Workflow Summary**: Guardian execution summary at completion
