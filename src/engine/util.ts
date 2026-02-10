@@ -84,10 +84,29 @@ export function redactSecrets(text: string): string {
 }
 
 export function extractJsonObject(text: string): string {
+  // Try to find JSON in various formats:
+  // 1. Pure JSON (starts with {)
+  // 2. JSON in markdown code block (```json ... ```)
+  // 3. JSON after prose text
+  
+  // First, try to extract from markdown code block
+  const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
+  }
+  
   // S4 FIX: Use non-greedy matching with balanced brace counting
   // Find first { and match to its balanced closing }
   const startIdx = text.indexOf('{');
-  if (startIdx === -1) throw new Error("No JSON object found in Copilot response");
+  if (startIdx === -1) {
+    // No JSON found - provide helpful error
+    const preview = text.substring(0, 200).replace(/\n/g, ' ');
+    throw new Error(
+      `No JSON object found in Copilot response.\n` +
+      `Response preview: "${preview}..."\n` +
+      `Hint: Copilot may have returned prose instead of JSON. Check copilot.*.raw.txt file.`
+    );
+  }
   
   let depth = 0;
   let inString = false;

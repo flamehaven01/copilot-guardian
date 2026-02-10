@@ -136,14 +136,19 @@ export async function analyzeRun(repo: string, runId: number, outDir = path.join
   
   console.log(chalk.dim('[>] Raw response saved'));
 
-  // Parse with error handling
+  // Parse with enhanced error handling
   let obj: any;
   try {
-    obj = JSON.parse(extractJsonObject(raw));
+    const jsonStr = extractJsonObject(raw);
+    obj = JSON.parse(jsonStr);
+    console.log(chalk.green('[+] Successfully parsed JSON response'));
   } catch (parseError: any) {
     console.log(chalk.red('[-] JSON parsing failed'));
+    console.log(chalk.yellow(`    Error: ${parseError.message}`));
     console.log(chalk.dim('    Raw response saved to copilot.analysis.raw.txt'));
-    throw new Error(`Copilot returned invalid JSON: ${parseError.message}\n\nHint: Check if Copilot SDK is working. Ensure you're authenticated: gh auth login`);
+    console.log(chalk.dim('    First 300 chars of response:'));
+    console.log(chalk.dim(`    ${raw.substring(0, 300).replace(/\n/g, ' ')}...`));
+    throw new Error(`Copilot returned invalid JSON: ${parseError.message}\n\nHint: Check copilot.analysis.raw.txt for full response. Copilot may have returned prose/markdown instead of JSON.`);
   }
   
   // Validate with fallback

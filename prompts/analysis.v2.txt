@@ -10,7 +10,9 @@ RULES (Sovereign + Safety):
 - Avoid insecure workarounds (no --insecure, no continue-on-error).
 - Prefer minimal fixes that preserve security posture.
 
-OUTPUT FORMAT (STRICT JSON ONLY):
+CRITICAL: YOU MUST RESPOND WITH VALID JSON ONLY. NO MARKDOWN. NO PROSE. ONLY JSON.
+
+OUTPUT FORMAT (STRICT JSON ONLY - NO EXCEPTIONS):
 {
   "metadata": {
     "repo": "owner/repo",
@@ -53,3 +55,5 @@ CONSTRAINTS:
 - Produce exactly 3 hypotheses in descending confidence order.
 - selected_hypothesis_id MUST match the top hypothesis id.
 - confidence scores must sum to ~1.0 (roughly) and be realistic.
+
+REMINDER: RESPOND WITH ONLY THE JSON OBJECT. START WITH { AND END WITH }. NO MARKDOWN FORMATTING. NO EXPLANATIONS.
