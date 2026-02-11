@@ -4,6 +4,12 @@ import chalk from "chalk";
 const BLOCK_FULL = '#';
 const BLOCK_LIGHT = '-';
 
+function riskRank(level: string): number {
+  if (level === "low") return 0;
+  if (level === "medium") return 1;
+  return 2;
+}
+
 function bar(p: number, width = 10): string {
   const filled = Math.max(0, Math.min(width, Math.round(p * width)));
   return BLOCK_FULL.repeat(filled) + BLOCK_LIGHT.repeat(width - filled);
@@ -68,9 +74,16 @@ export function renderPatchSpectrum(index: any): void {
   // Summary recommendation
   const goStrategies = index.results.filter((r: any) => r.verdict === 'GO');
   if (goStrategies.length > 0) {
-    const recommended = goStrategies.find((r: any) => r.risk_level === 'low') || goStrategies[0];
+    const sorted = [...goStrategies].sort((a: any, b: any) => {
+      const riskDelta = riskRank(String(a?.risk_level)) - riskRank(String(b?.risk_level));
+      if (riskDelta !== 0) return riskDelta;
+      const slopA = Number.isFinite(Number(a?.slop_score)) ? Number(a.slop_score) : 1;
+      const slopB = Number.isFinite(Number(b?.slop_score)) ? Number(b.slop_score) : 1;
+      return slopA - slopB;
+    });
+    const recommended = sorted[0];
     console.log(chalk.green.bold(`[RECOMMENDED] ${recommended.label}`));
-    console.log(chalk.dim(`Reason: Lowest risk among GO strategies\n`));
+    console.log(chalk.dim(`Reason: Lowest risk and lowest slop among GO strategies\n`));
   } else {
     console.log(chalk.yellow.bold('[!] No GO strategies available - all flagged for slop or high risk\n'));
   }

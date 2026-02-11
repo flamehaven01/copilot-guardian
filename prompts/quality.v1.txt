@@ -8,6 +8,7 @@ ANTI-SLOP CHECKS (Critical):
 - Detect deprecated / suspicious Actions usage
 
 If any anti-slop signals detected, MUST set verdict to NO_GO and include slop_score.
+slop_score MUST be a number between 0.0 and 1.0 (inclusive).
 
 Also check security posture:
 - No insecure flags

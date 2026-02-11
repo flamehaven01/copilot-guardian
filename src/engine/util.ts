@@ -1,35 +1,45 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import AjvModule from "ajv";
+import Ajv2020Module from "ajv/dist/2020.js";
 import addFormatsModule from "ajv-formats";
 
 // ESM default export handling
-const Ajv = (AjvModule as any).default || AjvModule;
+const Ajv2020 = (Ajv2020Module as any).default || Ajv2020Module;
 const addFormats = (addFormatsModule as any).default || addFormatsModule;
 
-// Get current directory - works in both ESM and CommonJS environments
-import { fileURLToPath } from 'node:url';
+function findPackageRoot(startDir: string): string | undefined {
+  let current = path.resolve(startDir);
+  while (true) {
+    const packageJson = path.join(current, "package.json");
+    const promptsDir = path.join(current, "prompts");
+    const schemasDir = path.join(current, "schemas");
+    if (fs.existsSync(packageJson) && fs.existsSync(promptsDir) && fs.existsSync(schemasDir)) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return undefined;
+}
 
-const getCurrentDir = (): string => {
-  // In CommonJS (Jest tests), __dirname is defined
-  if (typeof __dirname !== 'undefined') {
-    return __dirname;
+function resolvePackageRoot(): string {
+  const candidates: string[] = [];
+  if (typeof __dirname !== "undefined") candidates.push(__dirname);
+  if (typeof process.argv?.[1] === "string" && process.argv[1].trim()) {
+    candidates.push(path.dirname(path.resolve(process.argv[1])));
   }
-  // In ESM (runtime with NodeNext), import.meta.url is available
-  // @ts-ignore - import.meta is available in ESM modules
-  if (typeof import.meta !== 'undefined' && import.meta.url) {
-    // @ts-ignore
-    return path.dirname(fileURLToPath(import.meta.url));
+  candidates.push(process.cwd());
+
+  for (const candidate of candidates) {
+    const resolved = findPackageRoot(candidate);
+    if (resolved) return resolved;
   }
-  // Fallback: assume we're in the project root
   return process.cwd();
-};
+}
 
-// Get package root directory (works for both local dev and global install)
-// In compiled code: __dirname = dist/engine, so we go up 2 levels to get package root
-// In source: __dirname = src/engine, so we go up 2 levels to get package root
-export const PACKAGE_ROOT = path.resolve(getCurrentDir(), '..', '..');
+export const PACKAGE_ROOT = resolvePackageRoot();
 
 export type ExecOptions = {
   cwd?: string;
@@ -81,6 +91,26 @@ export function redactSecrets(text: string): string {
     redacted = redacted.replace(pattern, "***REDACTED***");
   }
   return redacted;
+}
+
+export function findResidualSecrets(text: string): string[] {
+  const checks: Array<{ label: string; pattern: RegExp }> = [
+    { label: "github_token_classic", pattern: /gh[pousr]_[A-Za-z0-9]{20,}/g },
+    { label: "github_token_fine_grained", pattern: /github_pat_[A-Za-z0-9_]{30,}/g },
+    { label: "openai_key", pattern: /\bsk-[A-Za-z0-9]{20,}\b/g },
+    { label: "bearer_token", pattern: /Bearer\s+[A-Za-z0-9\-._~+/=]{16,}/g },
+    { label: "aws_access_key", pattern: /\bAKIA[0-9A-Z]{16}\b/g },
+    { label: "private_key", pattern: /-----BEGIN\s+(?:RSA|DSA|EC|OPENSSH)?\s*PRIVATE\s+KEY-----/g },
+    { label: "jwt", pattern: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g }
+  ];
+
+  const found = new Set<string>();
+  for (const check of checks) {
+    if (check.pattern.test(text)) {
+      found.add(check.label);
+    }
+  }
+  return Array.from(found);
 }
 
 export function extractJsonObject(text: string): string {
@@ -146,7 +176,7 @@ export function extractJsonObject(text: string): string {
 }
 
 export function validateJson(data: unknown, schemaPath: string): void {
-  const ajv = new Ajv({ allErrors: true, strict: false });
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
   addFormats(ajv);
   const schema = JSON.parse(loadText(schemaPath));
   const validate = ajv.compile(schema);

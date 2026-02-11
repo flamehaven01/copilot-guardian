@@ -16,6 +16,96 @@ export interface ApplyResult {
   error?: string;
 }
 
+export type AutoHealBranchContext = {
+  currentBranch: string;
+  baseBranch: string;
+  pushBranch: string;
+  createdSafeBranch: boolean;
+  directPush: boolean;
+};
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function ensureAutoHealBranch(
+  runId: number,
+  options: {
+    directPush: boolean;
+    baseBranch?: string;
+    suffix?: string;
+  }
+): Promise<AutoHealBranchContext> {
+  const currentBranch = (await execAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'])).trim();
+  const baseBranch = options.baseBranch ? String(options.baseBranch) : currentBranch;
+  const directPush = Boolean(options.directPush);
+  let pushBranch = currentBranch;
+  let createdSafeBranch = false;
+
+  if (!directPush) {
+    const suffix = options.suffix || Date.now().toString().slice(-8);
+    pushBranch = `guardian/run-${runId}-${suffix}`;
+    await execAsync('git', ['checkout', '-b', pushBranch]);
+    createdSafeBranch = true;
+  }
+
+  return {
+    currentBranch,
+    baseBranch,
+    pushBranch,
+    createdSafeBranch,
+    directPush
+  };
+}
+
+export async function rerunLatestRunForCommit(repo: string, commitSha: string): Promise<number | null> {
+  try {
+    const raw = await execAsync('gh', [
+      'run',
+      'list',
+      '--repo',
+      repo,
+      '--commit',
+      commitSha,
+      '--limit',
+      '1',
+      '--json',
+      'databaseId,status,conclusion'
+    ]);
+    const runs = JSON.parse(raw);
+    const runId = Array.isArray(runs) && Number.isFinite(Number(runs[0]?.databaseId)) ? Number(runs[0].databaseId) : NaN;
+    if (!Number.isFinite(runId)) return null;
+
+    await execAsync('gh', ['run', 'rerun', String(runId), '--repo', repo]);
+    return runId;
+  } catch {
+    return null;
+  }
+}
+
+export async function waitForCIFinalStatus(
+  commitSha: string,
+  options: {
+    pollIntervalMs?: number;
+    maxPolls?: number;
+  } = {}
+): Promise<'passed' | 'failed' | 'pending'> {
+  const pollIntervalMs = Number.isFinite(options.pollIntervalMs) ? Number(options.pollIntervalMs) : 15000;
+  const maxPolls = Number.isFinite(options.maxPolls) ? Number(options.maxPolls) : 8;
+
+  for (let i = 0; i < maxPolls; i++) {
+    const status = await checkCIStatus(commitSha);
+    if (status === 'passed' || status === 'failed') {
+      return status;
+    }
+    if (i < maxPolls - 1) {
+      await sleep(pollIntervalMs);
+    }
+  }
+
+  return 'pending';
+}
+
 /**
  * Validate file path is within repository (Windows-safe)
  */
@@ -25,6 +115,49 @@ function isPathSafe(filePath: string, repoRoot: string): boolean {
   const repoNormalized = normalize(repoRoot);
   const rel = relative(repoNormalized, normalized);
   return !rel.startsWith('..') && !require('path').isAbsolute(rel);
+}
+
+function globToRegex(glob: string): RegExp {
+  const normalized = glob.replace(/\\/g, '/');
+  let out = '^';
+
+  for (let i = 0; i < normalized.length; i++) {
+    const ch = normalized[i];
+    const next = normalized[i + 1];
+
+    if (ch === '*' && next === '*') {
+      out += '.*';
+      i++;
+      continue;
+    }
+    if (ch === '*') {
+      out += '[^/]*';
+      continue;
+    }
+    if (ch === '?') {
+      out += '.';
+      continue;
+    }
+    if ('\\.[]{}()+-^$|'.includes(ch)) {
+      out += `\\${ch}`;
+      continue;
+    }
+    out += ch;
+  }
+
+  out += '$';
+  return new RegExp(out);
+}
+
+function isAllowedByPatterns(filePath: string, allowedFiles: string[]): boolean {
+  const normalizedFile = filePath.replace(/\\/g, '/');
+  return allowedFiles.some((pattern) => {
+    const p = String(pattern || '').trim();
+    if (!p) return false;
+    if (p === normalizedFile) return true;
+    if (!p.includes('*') && !p.includes('?')) return false;
+    return globToRegex(p).test(normalizedFile);
+  });
 }
 
 /**
@@ -80,8 +213,8 @@ export async function applyPatchViaDiff(
     }
     
     // Check allowed files
-    if (options.allowedFiles && options.allowedFiles.length > 0 && !options.allowedFiles.includes(file)) {
-      throw new Error(`File not in allowed list: ${file}`);
+    if (options.allowedFiles && options.allowedFiles.length > 0 && !isAllowedByPatterns(file, options.allowedFiles)) {
+      throw new Error(`File not in allowed list/pattern: ${file}`);
     }
     
     if (!filesModified.includes(file)) {
@@ -150,8 +283,8 @@ export async function applyPatch(
         throw new Error(`Unsafe path detected: ${file}`);
       }
       
-      if (options.allowedFiles && !options.allowedFiles.includes(file)) {
-        throw new Error(`File not in allowed list: ${file}`);
+      if (options.allowedFiles && options.allowedFiles.length > 0 && !isAllowedByPatterns(file, options.allowedFiles)) {
+        throw new Error(`File not in allowed list/pattern: ${file}`);
       }
     }
     

@@ -20,7 +20,7 @@ export interface SourceContext {
  */
 function extractFilePaths(logExcerpt: string): Array<{ file: string; line?: number }> {
   // More specific pattern: requires path separator and valid code file extension
-  const fileRegex = /(?:\.\/|\.\.\/|src\/|lib\/|tests?\/|__tests__\/|spec\/)?[\w\-]+(?:\/[\w\-]+)*\.(?:ts|tsx|js|jsx|mjs|cjs|py|rb|go|rs|java|kt|swift|c|cpp|h|hpp|cs|vue|svelte)(?::(\d+)(?::(\d+))?)?/g;
+  const fileRegex = /(?:\.\/|\.\.\/|src\/|lib\/|tests?\/|__tests__\/|spec\/)?[\w\-]+(?:\/[\w\-]+)*\.(?:ts|tsx|js|jsx|mjs|cjs|py|rb|go|rs|java|kt|swift|c|cpp|h|hpp|cs|vue|svelte)(?::(\d+)(?::(\d+))?)?(?=$|[\s)\]>,])/g;
   const matches = logExcerpt.match(fileRegex) || [];
   
   return matches
@@ -94,7 +94,8 @@ function extractContextLines(
 export async function enhanceContextWithSources(
   logExcerpt: string,
   repo: string,
-  headSha?: string
+  headSha?: string,
+  preferredFiles: string[] = []
 ): Promise<SourceContext[]> {
   if (!headSha) {
     console.log(chalk.yellow('[!] No commit SHA, skipping source enhancement'));
@@ -103,7 +104,19 @@ export async function enhanceContextWithSources(
   
   console.log(chalk.dim('[>] Deep analysis: Extracting source context...'));
   
-  const filePaths = extractFilePaths(logExcerpt);
+  const fromLogs = extractFilePaths(logExcerpt);
+  const seeded = preferredFiles
+    .filter((f) => typeof f === 'string' && f.trim().length > 0)
+    .map((f) => ({ file: f, line: undefined as number | undefined }));
+
+  const seen = new Set<string>();
+  const filePaths = [...seeded, ...fromLogs]
+    .filter(({ file }) => {
+      if (seen.has(file)) return false;
+      seen.add(file);
+      return true;
+    })
+    .slice(0, 8);
   
   if (filePaths.length === 0) {
     console.log(chalk.dim('[~] No source files detected in logs'));

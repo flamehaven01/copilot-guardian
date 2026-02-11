@@ -31,6 +31,13 @@ export class CopilotError extends Error {
   }
 }
 
+export class EmptyResponseError extends Error {
+  constructor() {
+    super('Empty response from Copilot SDK. The model may be unavailable or the prompt was rejected.');
+    this.name = 'EmptyResponseError';
+  }
+}
+
 // Singleton client for SDK - lazy initialization
 let _sdkClient: CopilotClient | null = null;
 let _sdkClientPromise: Promise<CopilotClient> | null = null;
@@ -199,10 +206,15 @@ export async function copilotChatAsync(
   prompt: string,
   options: Partial<ExecOptions> = {}
 ): Promise<string> {
+  const envTimeoutRaw = Number(process.env.COPILOT_TIMEOUT_MS);
+  const envTimeout =
+    Number.isFinite(envTimeoutRaw) && envTimeoutRaw > 0 ? envTimeoutRaw : undefined;
+  const defaultTimeout = envTimeout ?? 120000;
+
   const fullOptions: ExecOptions = {
     showSpinner: true,
     spinnerText: '[>] Asking Copilot SDK...',
-    timeout: 90000,
+    timeout: defaultTimeout,
     retries: 2,
     ...options
   };
@@ -232,7 +244,8 @@ export async function copilotChatAsync(
       });
 
       // Send and wait for response
-      const responsePromise = session.sendAndWait({ prompt });
+      // IMPORTANT: pass explicit timeout to SDK to avoid its internal 60s default.
+      const responsePromise = session.sendAndWait({ prompt, mode: 'immediate' }, fullOptions.timeout);
       
       try {
         const response = await Promise.race([responsePromise, timeoutPromise]);
@@ -243,7 +256,7 @@ export async function copilotChatAsync(
         const content = response?.data?.content || '';
         
         if (!content) {
-          throw new CopilotError('Empty response from Copilot SDK. The model may be unavailable or the prompt was rejected.');
+          throw new EmptyResponseError();
         }
         
         spinner?.succeed('[+] Copilot SDK response received');
@@ -265,10 +278,17 @@ export async function copilotChatAsync(
         continue;
       }
 
-      // Handle timeout
-      if (error instanceof TimeoutError) {
+      // Handle timeout (local timer or SDK-level timeout message)
+      if (error instanceof TimeoutError || /timeout/i.test(errorMsg) || /session\.idle/i.test(errorMsg)) {
         if (spinner) spinner.text = chalk.yellow(`[!] Timeout. Retrying ${attempt}/${maxRetries}...`);
         await sleep(5000);
+        continue;
+      }
+
+      // Handle transient empty responses from Copilot SDK
+      if (error instanceof EmptyResponseError || /Empty response from Copilot SDK/i.test(errorMsg)) {
+        if (spinner) spinner.text = chalk.yellow(`[!] Empty Copilot response. Retrying ${attempt}/${maxRetries}...`);
+        await sleep(3000);
         continue;
       }
 

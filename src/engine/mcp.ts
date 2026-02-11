@@ -193,8 +193,26 @@ export function saveMCPUsageLog(
 export function enhancePromptWithMCP(
   basePrompt: string,
   repo: string,
-  runId: number
+  runId: number,
+  context?: {
+    failedStep?: string;
+    failedTestFiles?: string[];
+    assertionSignals?: string[];
+  }
 ): string {
+  const failedStep = context?.failedStep || 'unknown';
+  const failedTestFiles = (context?.failedTestFiles || []).slice(0, 8);
+  const assertionSignals = (context?.assertionSignals || []).slice(0, 8);
+
+  const testFocusedHints = failedStep.toLowerCase().includes('test')
+    ? `
+Additional test-failure instructions:
+- Prioritize failed test step diagnostics over lint/build assumptions.
+- Fetch and inspect these failing test files first (if present): ${failedTestFiles.length ? failedTestFiles.join(', ') : '(none provided)'}
+- Use assertion messages directly when inferring root cause: ${assertionSignals.length ? assertionSignals.join(' | ') : '(none provided)'}
+`
+    : '';
+
   const mcpInstructions = `
 ## MCP INSTRUCTIONS (IMPORTANT)
 
@@ -209,6 +227,9 @@ When using MCP:
 1. State which resources you accessed
 2. Show the data you retrieved
 3. Ground your analysis in this LIVE data
+4. Treat failed step "${failedStep}" as the primary signal unless contradicted by stronger evidence
+
+${testFocusedHints}
 
 If MCP is NOT available, work with the INPUT provided below.
 `;

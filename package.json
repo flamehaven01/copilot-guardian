@@ -1,6 +1,6 @@
 {
   "name": "copilot-guardian",
-  "version": "0.1.4",
+  "version": "0.2.4",
   "type": "module",
   "description": "Production-ready AI Guardian for GitHub Actions - Multi-Hypothesis CI Debugger with Risk-Aware Patching",
   "main": "dist/cli.js",
@@ -14,7 +14,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "lint": "node -e \"console.log('lint: skipped (MVP)')\""
+    "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@github/copilot-sdk": "^0.1.23",

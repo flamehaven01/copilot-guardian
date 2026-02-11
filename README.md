@@ -7,8 +7,9 @@
 **The AI That Heals Your CI While You Sleep** 🌙 → ☀️
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Tests: Passing](https://img.shields.io/badge/tests-41%20passing-brightgreen.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian)
-[![Version: 0.1.3](https://img.shields.io/badge/version-0.1.3-blue.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian/releases)
+[![CI](https://github.com/flamehaven01/copilot-guardian/actions/workflows/ci.yml/badge.svg)](https://github.com/flamehaven01/copilot-guardian/actions/workflows/ci.yml)
+[![Version: 0.2.4](https://img.shields.io/badge/version-0.2.4-blue.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian/releases)
+[![Release: v0.2.4](https://img.shields.io/badge/release-v0.2.4-0A66C2.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian/releases/tag/v0.2.4)
 [![Sovereign AI](https://img.shields.io/badge/Sovereign-AI-8A2BE2.svg?style=flat-square&logo=githubactions&logoColor=white)](https://dev.to/flamehaven)
 [![Anti-Slop Certified](https://img.shields.io/badge/Anti--Slop-Certified-00C853.svg?style=flat-square)](https://github.com/flamehaven01/copilot-guardian)
 [![Copilot CLI Challenge](https://img.shields.io/badge/GitHub-Copilot_Challenge-181717.svg?style=flat-square&logo=github&logoColor=white)](https://dev.to/challenges/github-2026-01-21)
@@ -16,13 +17,234 @@
 [![Model Context Protocol](https://img.shields.io/badge/MCP-Enabled-FF5722.svg?style=flat-square)](https://modelcontextprotocol.io/)
 [![Node.js: >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg?style=flat-square)](https://nodejs.org/)
 
-**Multi-Hypothesis CI Debugger • Risk-Aware Patching • Complete Transparency**
+**Multi-Hypothesis CI Debugger • Risk-Aware Patching • Complete Transparency • Step-Aware Recovery**
 
-[Features](#what-makes-guardian-unstoppable) • [Installation](#quick-start) • [Philosophy](#philosophy-sovereign-ai) • [Architecture](docs/ARCHITECTURE.md)
+[Submission v0.2.4](#submission-edition-v024-reliability--abstain-clarity) • [Why Challenge](#why-this-is-a-copilot-cli-challenge-submission) • [Judge Quick Test (90 seconds)](#judge-quick-test-90-seconds) • [Single Test Mode](#single-test-mode-clean-run-for-gif--review) • [Evaluation Harness](#evaluation-harness-real-world-patchability-diagnosis) • [Forced Abstain Policy](#forced-abstain-policy-not-patchable) • [Copilot Showcase](#copilot-challenge-showcase-five-advanced-usage-patterns) • [Installation](#quick-start) • [Architecture](docs/ARCHITECTURE.md)
 
 </div>
 
 > **[🏗️ Architecture & Technical Deep Dive](docs/ARCHITECTURE.md)** - Complete system design with Mermaid diagrams
+
+---
+
+## Why This Is a Copilot CLI Challenge Submission
+
+**A deterministic safety layer on top of Copilot CLI to prevent AI slop in production CI systems.**
+
+This project is not a generic "AI fixer" demo. It is a production-style control system designed to demonstrate high-leverage Copilot usage under real CI failure conditions:
+
+- Multi-hypothesis reasoning with explicit confidence and evidence
+- Patch synthesis as a risk spectrum (conservative/balanced/aggressive)
+- Independent deterministic quality guard (fail-closed by default)
+- Interactive debug flow with persisted trace artifacts
+- MCP-connected contextual analysis for stronger root-cause grounding
+
+**Runtime clarity for judges:** Production path uses `@github/copilot-sdk`. CLI fallback only for local experimentation.
+If you encounter `unknown command "chat" for "copilot"` in legacy logs, treat it as a deprecated CLI-path artifact, not the current production runtime path.
+
+## Judge Quick Test (90 seconds)
+
+Run one command:
+
+```bash
+copilot-guardian run \
+  --repo flamehaven01/copilot-guardian \
+  --last-failed \
+  --show-reasoning \
+  --show-options
+```
+
+Expected observations:
+
+1. Three competing hypotheses with confidence + evidence
+2. Patch spectrum across conservative/balanced/aggressive
+3. Deterministic anti-slop gate rejecting risky bypass patterns
+4. Full artifacts persisted to `.copilot-guardian/` for auditability
+
+## Single Test Mode (Clean Run for GIF + Review)
+
+If you want one clean verification dataset before recording GIF, use this sequence:
+
+```powershell
+# 1) Clear previous artifacts
+Remove-Item .\.copilot-guardian\* -Recurse -Force -ErrorAction SilentlyContinue
+
+# 2) Run a single local test scenario (intentional mixed-quality patch cases)
+npm test -- tests/quality_guard_regression_matrix.test.ts --runInBand
+
+# 3) Run Guardian analysis for challenge flow
+node dist\cli.js run --repo flamehaven01/copilot-guardian --last-failed --show-options
+```
+
+Primary test file:
+- `tests/quality_guard_regression_matrix.test.ts`
+
+Result files are generated to:
+- `.copilot-guardian/analysis.json`
+- `.copilot-guardian/patch_options.json`
+- `.copilot-guardian/fix.conservative.patch`
+- `.copilot-guardian/fix.balanced.patch`
+- `.copilot-guardian/fix.aggressive.patch`
+- `.copilot-guardian/quality_review.conservative.json`
+- `.copilot-guardian/quality_review.balanced.json`
+- `.copilot-guardian/quality_review.aggressive.json`
+
+Quick links (after running):
+- [`analysis.json`](.copilot-guardian/analysis.json)
+- [`patch_options.json`](.copilot-guardian/patch_options.json)
+- [`quality_review.balanced.json`](.copilot-guardian/quality_review.balanced.json)
+
+## Evaluation Harness (Real-World Patchability Diagnosis)
+
+Use `eval` to benchmark multiple failed runs and measure practical patchability coverage.
+
+```bash
+# Option A: Explicit run IDs
+copilot-guardian eval \
+  --repo owner/repo \
+  --run-ids 21579603385,21581234123 \
+  --max-log-chars 50000
+
+# Option B: Automatically use recent failed runs
+copilot-guardian eval \
+  --repo owner/repo \
+  --failed-limit 5 \
+  --max-log-chars 50000
+```
+
+Outputs:
+- `.copilot-guardian/eval/eval.report.md`
+- `.copilot-guardian/eval/eval.report.json`
+- `.copilot-guardian/eval/eval.cases.json`
+- `.copilot-guardian/eval/run-<run_id>/...` (per-run artifacts)
+
+Metrics included:
+- Analyze success rate
+- Patch generation rate
+- Patchable rate (`>=1 GO`)
+- All-`NO_GO` rate
+- Top `NO_GO` reason distribution
+- Bypass attempt rate / bypass block rate / security false-GO rate
+- Abstain rate (`NOT_PATCHABLE` auth/infra classes)
+- Security severity distribution (`critical/high/medium/low`)
+
+Note: `eval` diagnoses patchability and safety coverage. It does not claim guaranteed auto-fix for every failure type.
+
+## Forced Abstain Policy (NOT PATCHABLE)
+
+Guardian intentionally refuses patch generation for non-patchable failure classes.
+
+Primary triggers:
+- Strong signals: `401/403`, token permission denial, GitHub API rate limit.
+- Combined weak infra signals: runner unavailable + service unavailable, or equivalent multi-signal combinations.
+
+When abstain is triggered:
+- No `fix.*.patch` files are generated.
+- `.copilot-guardian/abstain.report.json` is emitted with `classification`, `signals`, and recommended actions.
+- Auto-heal flow does not continue until infra/auth issues are resolved.
+
+Typical report:
+
+```json
+{
+  "classification": "NOT_PATCHABLE",
+  "signals": ["auth_401_403", "github_token_permission"],
+  "reason": "Failure appears to be auth/permission/infra related; forcing abstain for safety."
+}
+```
+
+## Final GIF Slot (Submission Finalization)
+
+Add your final recording file at `docs/screenshots/final-demo.gif`:
+
+![Judge Quick Test Demo](docs/screenshots/final-demo.gif)
+
+---
+
+## Submission Edition v0.2.4: Reliability + Abstain Clarity
+
+This release upgrades Guardian from static patch generation to an **independent, step-aware recovery system** designed for real CI failures.
+
+### What changed in this submission release
+
+- **Step-aware hypothesis arbitration**
+  - Uses failed step metadata (`Run tests`, `Run linter`, `Build`, `Install`) as first-class signal.
+  - Re-weights hypothesis confidence by step/category compatibility before selecting root cause.
+
+- **Dynamic allowed_files mapping**
+  - Patch scope is derived from failed step context instead of static patterns.
+  - Example: test failures automatically expand scope to test files and test configs.
+
+- **Assertion-aware deep context**
+  - Failed test files and assertion signals are extracted from logs.
+  - MCP prompt is enriched with evidence-first instructions for direct assertion analysis.
+
+- **Fail-closed quality gate**
+  - Invalid quality JSON is now forced to `NO_GO` (not permissive fallback).
+  - Out-of-range `slop_score` values are flagged as validation bypass risk.
+  - CI lint now runs real TypeScript type-check (`tsc --noEmit`) instead of placeholder skip output.
+
+- **Independent TypeScript patch quality guard (algorithm overhaul)**
+  - Guardian now runs a deterministic local review over each patch diff (scope, bypass anti-patterns, intent alignment, patch footprint).
+  - This guard is internal to `copilot-guardian` and does not require external SIDRCE/ai-slop-detector pipeline wiring.
+
+- **Forced abstain for auth/permission/infra failure classes**
+  - `401/403`, token permission errors, rate limits, runner unavailable, and service-unavailable patterns now produce `NOT_PATCHABLE` abstain.
+  - Guardian writes `.copilot-guardian/abstain.report.json` and refuses patch generation for these cases.
+
+- **Secret redaction fail-closed policy**
+  - Residual secret patterns after redaction now hard-stop analysis.
+  - This prevents unsafe raw artifact persistence when sensitive tokens are still detectable.
+
+- **Branch protection by default (PR-only safe mode)**
+  - Auto-heal now pushes to `guardian/run-<run_id>-<suffix>` branch and opens a PR by default.
+  - Direct push is possible only with explicit `--allow-direct-push`.
+
+- **Patch footprint hard caps**
+  - Deterministic guard forces `NO_GO` for workflow file edits, deletion patches, or oversized patch footprints beyond safe auto-fix limits.
+
+- **Auto re-diagnosis recommendation**
+  - When all patch strategies are `NO_GO`, Guardian recommends re-run with larger log window.
+  - New CLI option: `--max-log-chars`.
+
+### Fast verification (v0.2.4 path)
+
+```bash
+copilot-guardian run \
+  --repo owner/repo \
+  --last-failed \
+  --show-options \
+  --max-log-chars 50000
+```
+
+Expected output highlights:
+- `Failed step: ...` appears in analysis header
+- `failed_test_files` and `assertion_signals` are saved in `.copilot-guardian/input.context.json`
+- `patch_plan.allowed_files` is dynamically expanded in `.copilot-guardian/analysis.json`
+- If all options are rejected, Guardian suggests a larger `--max-log-chars` re-run
+
+---
+
+## Copilot Challenge Showcase: Five Advanced Usage Patterns
+
+This project demonstrates five advanced usage patterns aligned with Copilot CLI Challenge judging priorities:
+
+1. **Multi-turn structured reasoning**: three-hypothesis diagnosis with evidence-backed arbitration
+2. **Schema-constrained JSON outputs**: deterministic shape enforcement for analysis and quality artifacts
+3. **Risk-calibrated generation**: conservative/balanced/aggressive patch synthesis with explicit risk/slop scores
+4. **Independent validation loop**: deterministic local guard merged with model review
+5. **Fail-closed enforcement**: malformed outputs and bypass anti-patterns forced to `NO_GO`
+
+**Why this matters:** AI slop is dangerous in CI because it can hide real failures while appearing to "fix" pipelines.
+
+```mermaid
+flowchart LR
+    A[Copilot SDK Output] --> B[Schema Validation]
+    B --> C[Deterministic TS Guard]
+    C --> D{GO?}
+    D -->|NO_GO| E[Reject + Re-diagnose]
+    D -->|GO| F[Patch Candidate]
+```
 
 ---
 
@@ -113,16 +335,20 @@ copilot-guardian run \
 
 **What happens:**
 1. Fetch failure logs via GitHub API
-2. Copilot CLI analyzes root cause
+2. Copilot SDK analyzes root cause
 3. Generate 3 patch strategies (Conservative/Balanced/Aggressive)
 4. AI quality review (slop detection, security check)
 5. **AUTO-APPLY best patch**
-6. **Commit & push to origin**
-7. **Wait for CI to re-run**
-8. **Retry up to 3 times** if still failing
-9. **Report success** or escalate to human
+6. **Commit & push to a safe branch** (`guardian/run-...`)
+7. **Open PR to base branch** (default safe mode)
+8. **Wait for CI to re-run**
+9. **Retry up to 3 times** if still failing
+10. **Report success** or escalate to human
 
 Safety: auto-heal only applies patches within the allowlist from `analysis.patch_plan.allowed_files`. If the allowlist is empty, it aborts.
+Additional safety: direct push is off by default. Use `--allow-direct-push` only in controlled environments.
+Retry tuning: use `--max-retries <n>` (default: `3`) for bounded CI rerun attempts.
+If Guardian classifies the failure as `NOT PATCHABLE`, it emits `abstain.report.json` and skips patch/apply steps.
 
 **Real output:**
 ```
@@ -130,7 +356,9 @@ Safety: auto-heal only applies patches within the allowlist from `analysis.patch
 [>] Selected: Conservative (risk: low, slop: 8%)
 [+] Applied patch: package.json
 [>] Committed as a3f9c21
-[+] Pushed to origin/main
+[+] Safe branch created: guardian/run-21579603385-12345678
+[+] Pushed safe branch: guardian/run-21579603385-12345678
+[+] Pull request created: guardian/run-21579603385-12345678 -> main
 [~] Waiting for CI to trigger (10s)...
 [W] SUCCESS! CI passed after Guardian intervention
 ```
@@ -267,6 +495,12 @@ copilot-guardian run \
 copilot-guardian debug \
   --repo owner/repo \
   --last-failed
+
+# Evaluate real-world patchability across recent failures
+copilot-guardian eval \
+  --repo owner/repo \
+  --failed-limit 5 \
+  --max-log-chars 50000
 ```
 
 ## How It Works
@@ -312,11 +546,11 @@ graph TB
 | Decision | `patch_options.ts` | Generate risk-calibrated strategies |
 | Validation | Quality Review | Anti-slop filter + security checks |
 | Action | `auto-apply.ts` | File patching + git automation |
-| Verification | Status monitor | CI retry loop until success |
+| Verification | Status monitor | Bounded CI retry loop (`--max-retries`, default 3) |
 
 ### The Five Layers of Copilot SDK Usage
 
-This project showcases GitHub Copilot CLI in five distinct ways:
+This project showcases Copilot integration in five distinct ways:
 
 1. **Hypothesis Generation**: Multi-turn reasoning to explore failure theories
 2. **Patch Synthesis**: Creating multiple strategies with different risk profiles
@@ -336,8 +570,8 @@ After running `copilot-guardian`, you'll find these artifacts in `.copilot-guard
 | `fix.conservative.patch` | Minimal, safest patch |
 | `fix.balanced.patch` | Standard best-practice patch |
 | `fix.aggressive.patch` | Comprehensive patch (often over-engineered) |
-| `quality.*.json` | Quality verdicts for each patch |
-| `copilot.*.raw.txt` | Raw Copilot CLI responses (transparency) |
+| `quality_review.*.json` | Quality verdicts for each patch |
+| `copilot.*.raw.txt` | Raw Copilot model responses (transparency) |
 | `input.context.json` | Redacted input sent to Copilot |
 
 ## Examples

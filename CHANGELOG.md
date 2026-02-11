@@ -5,6 +5,176 @@ All notable changes to Copilot Guardian will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-02-11
+
+### README Clarity + Version/Tag Alignment
+
+#### Added
+- **Dedicated Forced Abstain documentation**
+  - Added `Forced Abstain Policy (NOT PATCHABLE)` section in README.
+  - Documented abstain trigger classes, generated artifact (`abstain.report.json`), and operator action.
+
+#### Changed
+- **Submission metadata alignment**
+  - Updated README release badges/tag references to `v0.2.4`.
+  - Updated submission section heading and quick-verification path label to `v0.2.4`.
+- **Auto-heal docs clarity**
+  - Explicitly states that `NOT PATCHABLE` classification skips patch/apply flow.
+
+#### Fixed
+- **Runtime/version consistency**
+  - Updated CLI runtime version to `0.2.4`.
+  - Updated package version metadata (`package.json`, `package-lock.json`) to `0.2.4`.
+
+## [0.2.3] - 2026-02-11
+
+### Security Hardening + Safe Auto-Heal Controls
+
+#### Added
+- **Forced abstain policy for non-patchable failure classes**
+  - Added auth/permission/infra classifiers (`401/403`, token permission denied, rate limits, runner unavailable, service unavailable).
+  - Guardian now emits `abstain.report.json` and skips patch generation for these classes.
+- **Secret redaction fail-closed enforcement**
+  - Added residual secret-pattern detection after redaction.
+  - Analysis now aborts when sensitive token patterns remain in logs.
+- **Auto-heal branch safety controls**
+  - New CLI options:
+    - `--allow-direct-push` (explicit unsafe override)
+    - `--base-branch <name>` (PR target branch)
+    - `--max-retries <n>` (bounded CI rerun attempts; default 3)
+  - Default behavior is PR-only safe mode using `guardian/run-<run_id>-<suffix>` branches.
+
+#### Changed
+- **Deterministic guard hard caps**
+  - Workflow file edits are forced `NO_GO` (human review required).
+  - File deletion patches are forced `NO_GO` (human review required).
+  - Oversized patch footprint is forced `NO_GO` beyond safe auto-fix threshold.
+- **Evaluation harness security reporting**
+  - Added abstain-aware reporting fields and rates.
+  - Added per-case and aggregate `security_severity` distribution.
+- **Auto-heal execution order**
+  - Safe branch creation now occurs before patch application in PR-only mode.
+  - Failed apply in safe mode performs branch cleanup before exiting.
+- **README submission positioning and operator guidance**
+  - Updated release/version tags to `v0.2.3`.
+  - Updated auto-heal narrative to PR-only safe mode.
+  - Clarified artifact generation flow and output locations under `.copilot-guardian/`.
+
+#### Fixed
+- **Evaluation markdown table formatting**
+  - Corrected case-table separator column count to match expanded security fields.
+
+## [0.2.2] - 2026-02-11
+
+### TS Gate Hardening + Scenario Verification
+
+#### Added
+- **TS suppression anti-pattern guard**
+  - Deterministic review now blocks added `@ts-ignore`, `@ts-nocheck`, and `eslint-disable`.
+- **Scenario test for suppression-based fake fix**
+  - Added regression test to ensure suppression-only patches are rejected.
+- **Real-world evaluation harness (`eval`)**
+  - Added `copilot-guardian eval` command for multi-run patchability benchmarking.
+  - Supports explicit `--run-ids`, file-based IDs (`--run-file`), or recent failed runs (`--failed-limit`).
+  - Generates aggregate reports: `eval.report.md`, `eval.report.json`, and `eval.cases.json`.
+  - Adds security-oriented metrics: bypass attempt rate, bypass block rate, and security false-GO rate.
+
+#### Changed
+- **Glob scope matching accuracy**
+  - Fixed `**` wildcard handling so `tests/**/*.ts` and `src/**/*.ts` correctly match root-level files.
+- **Placeholder marker handling**
+  - Added-line `TODO/FIXME/HACK` markers are now fail-closed (`NO_GO`) instead of soft warning.
+- **Security bypass detection expansion**
+  - Deterministic guard now fail-closes on additional bypass patterns:
+    - `NODE_TLS_REJECT_UNAUTHORIZED=0`
+    - `GIT_SSL_NO_VERIFY=true`
+    - `strict-ssl false` / `npm config set strict-ssl false`
+    - `curl -k` / `--insecure`
+    - `|| true` / `set +e`
+- **README challenge positioning overhaul**
+  - Added `Why This Is a Copilot CLI Challenge Submission` and `Judge Quick Test (90 seconds)` sections near the top.
+  - Added `Single Test Mode (Clean Run for GIF + Review)` with one-file verification flow and direct artifact links.
+  - Added a fail-closed deterministic safety-layer diagram and explicit anti-slop CI positioning.
+  - Added explicit runtime note: production path is `@github/copilot-sdk`, CLI fallback is local experimentation only.
+  - Added clarification for legacy `unknown command "chat" for "copilot"` traces to prevent reviewer confusion.
+  - Added final GIF insertion slot for submission-final update.
+- **Test surface simplification for submission clarity**
+  - Reduced `tests/` to a single primary scenario file: `tests/quality_guard_regression_matrix.test.ts`.
+  - Removed legacy `tests/__mocks__` tree and migrated required SDK stub to `tests/mocks/copilot-sdk.mock.ts`.
+
+#### Fixed
+- **False out-of-scope rejection**
+  - Balanced patches touching `tests/<file>.ts` no longer misclassified as out of scope due glob conversion bug.
+- **Real lint gate activation**
+  - Replaced placeholder `lint: skipped (MVP)` with `tsc --noEmit` type-check lint gate for CI validity.
+- **Submission artifact hygiene**
+  - Removed legacy `guardian-output.txt` and optional `sidrce_cert.yaml` from repository root to reduce reviewer confusion.
+- **Version alignment to `0.2.2`**
+  - Updated `package.json`, `package-lock.json`, CLI runtime version, README release badges and submission tag.
+
+## [0.2.1] - 2026-02-11
+
+### Submission Hardening: Independent TS Quality Core
+
+#### Added
+- **Deterministic TypeScript quality guard (internal algorithm)**
+  - Added local patch review for scope, bypass anti-patterns, intent alignment, and patch footprint.
+  - Merges deterministic verdict with model verdict for final GO/NO_GO decision.
+  - Keeps the project independent without external SIDRCE/ai-slop-detector pipeline coupling.
+
+#### Changed
+- **Auto-heal patch selection policy**
+  - `run --auto-heal` now selects the best GO strategy by `risk_level` then `slop_score`, not first GO hit.
+  - Dashboard recommendation uses the same ranking policy for consistent operator decisions.
+- **README release metadata**
+  - Updated badges/tag references to `v0.2.1`.
+  - Replaced static test-count badge with CI workflow badge.
+
+#### Fixed
+- **JSON schema validation compatibility**
+  - Switched validator runtime to Ajv 2020 to match `$schema: draft/2020-12`.
+  - Eliminates false schema warnings that previously forced valid patches to NO_GO.
+- **Jest parse/runtime stability**
+  - Removed direct `import.meta` usage from util path resolution to avoid CommonJS parse failures in tests.
+  - Updated SDK call expectation in `async-exec.test.ts` for `sendAndWait({ prompt, mode }, timeout)`.
+  - Updated analyze test expectation for `fetchRunContext(repo, runId, maxLogChars)`.
+
+## [0.2.0] - 2026-02-11
+
+### Submission Edition: Adaptive Failure Intelligence
+
+This release upgrades Guardian into a step-aware CI recovery engine for challenge submission quality.
+
+#### Added
+- **Step-aware diagnosis weighting**
+  - Hypothesis selection now considers failed-step/category compatibility, not confidence only.
+- **Dynamic patch allowlist generation**
+  - `patch_plan.allowed_files` is expanded from failed step context (test/lint/build/install).
+- **Test evidence extraction**
+  - Failed test files and assertion signals are parsed from logs and injected into analysis context.
+- **New CLI option: `--max-log-chars`**
+  - Available on `run` and `analyze` commands for wider failure evidence coverage.
+- **Auto re-diagnosis guidance**
+  - When patch spectrum is `NO_GO` for all options, Guardian suggests a re-run with expanded logs.
+- **README submission upgrade**
+  - Added v0.2.0 submission section and release tag badges without removing prior README content.
+
+#### Changed
+- **Version alignment to `0.2.0`**
+  - `package.json`, `package-lock.json`, CLI runtime version, README badge/tag, SIDRCE metadata.
+- **MCP prompt strategy**
+  - Prompt now prioritizes failed-step evidence, especially test assertion context.
+- **Allowlist enforcement**
+  - Auto-apply allowlist supports glob patterns for safer and practical scope checks.
+
+#### Fixed
+- **Quality review fail-open risk**
+  - Malformed quality JSON now returns `NO_GO` with high risk instead of permissive `GO`.
+- **Schema bypass detection**
+  - Out-of-range `slop_score` values are flagged and normalized with forced `NO_GO`.
+- **False-positive source extraction noise**
+  - Improved file-path boundary matching to reduce URL-derived pseudo files in deep analysis.
+
 ## [0.1.4] - 2026-02-10
 
 ### 🎨 UI/UX Enhancements + Critical Parser Fix
