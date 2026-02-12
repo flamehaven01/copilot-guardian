@@ -7,22 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.6] - 2026-02-12
 
-### Speed + Stable Demo Mode + Submission Polish
-
-#### Fixed
-- **SECURITY.md placeholder and version alignment**
-  - Replaced placeholder email with `info@flamehaven.space` in vulnerability reporting and contact sections.
-  - Updated supported version table from `1.0.x` to `0.2.x` to match current release.
-  - Updated security policy version and last-updated date.
+### npm Publish + Packaging Hygiene
 
 #### Added
-- **`--fast` mode for run/analyze/eval**
-  - New CLI flag reduces analysis and patch-generation latency for stable demos.
-  - Propagates through `run -> analyze + patch options` and evaluation harness runs.
-- **Fast-mode patch generation controls**
-  - Shorter generation timeout and retry budget in fast mode.
-  - Parallel quality reviews for strategy set evaluation.
-  - Optional model quality skip when deterministic guard already returns `NO_GO`.
+- **Published to npm (`latest`)**
+  - Package name: `copilot-guardian`
+  - Published version: `0.2.6`
+  - Install paths:
+    - `npm i -g copilot-guardian@latest`
+    - `npx copilot-guardian@latest --help`
+
+#### Changed
+- **npm package footprint reduced dramatically**
+  - Introduced `files` allowlist in `package.json` to publish runtime essentials only.
+  - Excluded large/non-runtime artifacts (tests, source TS, local test outputs, media-heavy docs).
+  - Tarball reduced from ~`6.1 MB` to ~`77 KB` (`npm pack --dry-run` verification).
+- **README distribution clarity**
+  - Added npm version badge.
+  - Added explicit npm package URL and install/run guidance using `@latest`.
+  - Adjusted badge layout for readability.
+- **Version alignment (docs/runtime metadata)**
+  - README badges updated to `0.2.6` / `v0.2.6`.
+  - CLI runtime version string updated to `0.2.6`.
+  - CHANGELOG top release synchronized to `0.2.6`.
+
+#### Fixed
+- **Security policy documentation alignment**
+  - Replaced placeholder contact with `info@flamehaven.space`.
+  - Updated supported version range from `1.0.x` to `0.2.x`.
+  - Updated policy metadata date/version for current release line.
+
+## [0.2.5] - 2026-02-11
+
+### Speed + Stable Demo Mode
 
 #### Changed
 - **Analysis speed tuning**
