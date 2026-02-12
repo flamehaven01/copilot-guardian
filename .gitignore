@@ -3,6 +3,7 @@ dist/
 .copilot-guardian/
 .copilot-guardian-test/
 .test-output/
+.test-output-run-abstain/
 .DS_Store
 *.log
 
@@ -26,4 +27,5 @@ docs/RESILIENCE_STRATEGY.md
 NUL
 guardian-output.txt
 patch-strategies.json
+patch_strategies.json
 sidrce_cert.yaml

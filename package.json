@@ -7,6 +7,18 @@
   "bin": {
     "copilot-guardian": "dist/cli.js"
   },
+  "files": [
+    "dist/",
+    "prompts/",
+    "schemas/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/cli.js",
