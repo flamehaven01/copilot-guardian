@@ -166,6 +166,8 @@ Add your final recording file at `docs/screenshots/final-demo.gif`:
 
 ![Judge Quick Test Demo](docs/screenshots/final-demo.gif)
 
+Runtime: 3m43s, Profile: --fast --max-log-chars 20000 (reasoning hidden for stable demo)
+
 ---
 
 ## Submission Edition v0.2.5: Speed + Stability
