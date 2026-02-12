@@ -5,9 +5,15 @@ All notable changes to Copilot Guardian will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.5] - 2026-02-11
+## [0.2.5] - 2026-02-12
 
-### Speed + Stable Demo Mode
+### Speed + Stable Demo Mode + Submission Polish
+
+#### Fixed
+- **SECURITY.md placeholder and version alignment**
+  - Replaced placeholder email with `info@flamehaven.space` in vulnerability reporting and contact sections.
+  - Updated supported version table from `1.0.x` to `0.2.x` to match current release.
+  - Updated security policy version and last-updated date.
 
 #### Added
 - **`--fast` mode for run/analyze/eval**

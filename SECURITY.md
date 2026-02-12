@@ -4,7 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
+| 0.2.x   | :white_check_mark: |
 
 ## Security Philosophy
 
@@ -32,7 +32,7 @@ All logs and context sent to AI models are automatically sanitized:
 If you discover a security vulnerability in Copilot Guardian, please:
 
 1. **DO NOT** open a public issue
-2. Email: [security contact - replace with your email]
+2. Email: info@flamehaven.space
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce
@@ -140,11 +140,11 @@ gh repo subscribe flamehaven01/copilot-guardian --alerts
 
 ## Contact
 
-- Security Issues: [Your security email]
+- Security Issues: info@flamehaven.space
 - General Issues: [GitHub Issues](https://github.com/flamehaven01/copilot-guardian/issues)
 - Documentation: [docs/](./docs/)
 
 ---
 
-**Last Updated**: 2026-02-02  
-**Security Policy Version**: 1.0.0
+**Last Updated**: 2026-02-12
+**Security Policy Version**: 0.2.5
