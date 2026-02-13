@@ -58,7 +58,7 @@ const program = new Command();
 program
   .name("copilot-guardian")
   .description(chalk.cyan("[#] Sovereign AI Guardian for GitHub Actions"))
-  .version("0.2.6");
+  .version("0.2.7");
 
 program
   .command("auth")
@@ -137,6 +137,15 @@ program
       });
 
       renderSummary(res.analysis);
+
+      if (res.analysis?.diagnosis?.low_confidence_ambiguity) {
+        const suggestedMaxLogChars = Math.max(maxLogChars, 50000);
+        console.log(chalk.yellow('\n[!] Low-confidence ambiguity detected between top hypotheses.'));
+        if (!opts.showReasoning) {
+          console.log(chalk.yellow('    Re-run with --show-reasoning to inspect competing evidence.'));
+        }
+        console.log(chalk.yellow(`    Suggested rerun: --max-log-chars ${suggestedMaxLogChars}`));
+      }
 
       if (opts.showReasoning) {
         renderHypotheses(res.analysis.diagnosis.hypotheses);

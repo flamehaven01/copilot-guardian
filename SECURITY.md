@@ -148,4 +148,4 @@ gh repo subscribe flamehaven01/copilot-guardian --alerts
 ---
 
 **Last Updated**: 2026-02-13
-**Security Policy Version**: 0.2.6
+**Security Policy Version**: 0.2.7

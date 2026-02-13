@@ -45,13 +45,21 @@ export type AnalysisJson = {
     root_cause: string;
     evidence: string[];
     confidence_score: number;
+    confidence_gap?: number;
+    low_confidence_ambiguity?: boolean;
+    review_guidance?: string;
+    selection_note?: string;
   };
   patch_plan: {
     intent: string;
     allowed_files: string[];
     strategy: string;
+    allowlist_source?: string;
+    intent_source?: string;
   };
 };
+
+const CONFIDENCE_GAP_THRESHOLD = 0.15;
 
 function normalizeStep(step?: string): string {
   return (step || "").toLowerCase();
@@ -180,7 +188,7 @@ function intentMismatchedWithStep(intent: string, step?: string): boolean {
   return false;
 }
 
-function applyStepAwareAdjustments(obj: any, ctx: RunContext): void {
+export function applyStepAwareAdjustments(obj: any, ctx: RunContext): void {
   const hypotheses: Hypothesis[] = Array.isArray(obj?.diagnosis?.hypotheses) ? obj.diagnosis.hypotheses : [];
   if (hypotheses.length === 0) return;
 
@@ -206,6 +214,30 @@ function applyStepAwareAdjustments(obj: any, ctx: RunContext): void {
     obj.diagnosis.category = selected.category;
     if (previous && previous !== selected.id) {
       obj.diagnosis.selection_note = `Step-aware weighting switched selection from ${previous} to ${selected.id} (failed step: ${ctx.step || "unknown"}).`;
+    }
+  }
+
+  const topConfidence = Number(
+    Number.isFinite(selected?.confidence) ? selected?.confidence : obj?.diagnosis?.confidence_score ?? 0
+  );
+  const secondConfidence = Number(Number.isFinite(scored[1]?.hypothesis?.confidence) ? scored[1]?.hypothesis?.confidence : 0);
+  const confidenceGap = Number(Math.max(0, topConfidence - secondConfidence).toFixed(4));
+  const ambiguous = scored.length < 2 || confidenceGap < CONFIDENCE_GAP_THRESHOLD;
+
+  obj.diagnosis.confidence_score = Number(topConfidence.toFixed(4));
+  obj.diagnosis.confidence_gap = confidenceGap;
+  obj.diagnosis.low_confidence_ambiguity = ambiguous;
+
+  if (ambiguous) {
+    const ambiguityNote = `Low confidence gap detected (${confidenceGap.toFixed(4)} < ${CONFIDENCE_GAP_THRESHOLD.toFixed(2)}).`;
+    obj.diagnosis.review_guidance =
+      "Review reasoning trace with --show-reasoning and rerun with a higher --max-log-chars value.";
+    if (typeof obj.diagnosis.selection_note === "string" && obj.diagnosis.selection_note.trim().length > 0) {
+      if (!obj.diagnosis.selection_note.includes(ambiguityNote)) {
+        obj.diagnosis.selection_note = `${obj.diagnosis.selection_note} ${ambiguityNote}`;
+      }
+    } else {
+      obj.diagnosis.selection_note = ambiguityNote;
     }
   }
 

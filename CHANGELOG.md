@@ -5,14 +5,14 @@ All notable changes to Copilot Guardian will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.6] - 2026-02-12
+## [0.2.7] - 2026-02-13
 
 ### npm Publish + Packaging Hygiene
 
 #### Added
 - **Published to npm (`latest`)**
   - Package name: `copilot-guardian`
-  - Published version: `0.2.6`
+  - Published version: `0.2.7`
   - Install paths:
     - `npm i -g copilot-guardian@latest`
     - `npx copilot-guardian@latest --help`
@@ -27,9 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added explicit npm package URL and install/run guidance using `@latest`.
   - Adjusted badge layout for readability.
 - **Version alignment (docs/runtime metadata)**
-  - README badges updated to `0.2.6` / `v0.2.6`.
-  - CLI runtime version string updated to `0.2.6`.
-  - CHANGELOG top release synchronized to `0.2.6`.
+  - README badges updated to `0.2.7` / `v0.2.7`.
+  - CLI runtime version string updated to `0.2.7`.
+  - CHANGELOG top release synchronized to `0.2.7`.
 
 #### Fixed
 - **Security policy documentation alignment**

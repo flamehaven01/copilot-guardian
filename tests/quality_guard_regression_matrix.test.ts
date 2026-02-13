@@ -252,6 +252,18 @@ describe('quality guard regression matrix', () => {
       reason: 'TODO/FIXME/HACK markers'
     },
     {
+      name: 'no-op comment-only patch',
+      diff: [
+        '--- a/src/engine/github.ts',
+        '+++ b/src/engine/github.ts',
+        '@@ -10,3 +10,6 @@',
+        '+// explanation only',
+        '+/* no functional change */',
+        '+   '
+      ].join('\n'),
+      reason: 'No-op patch detected'
+    },
+    {
       name: 'process-exit bypass',
       diff: [
         '--- a/package.json',
@@ -364,6 +376,47 @@ describe('quality guard regression matrix', () => {
     expect(conservative.verdict).toBe('NO_GO');
     expect(joinedReasons(conservativeReview)).toContain('Out-of-scope file changes detected');
     expect(balanced.verdict).toBe('GO');
+  });
+
+  test.each([
+    {
+      name: 'unix-style traversal',
+      filePath: 'src/../secrets.ts'
+    },
+    {
+      name: 'windows-style traversal',
+      filePath: 'src\\..\\secrets.ts'
+    }
+  ])('rejects path traversal-style file paths even if target extension looks allowed: $name', async ({ filePath }) => {
+    const analysis = baseAnalysis({
+      allowed_files: ['src/**/*.ts', 'tests/**/*.ts', 'package.json']
+    });
+
+    mockCopilot([
+      {
+        id: 'conservative',
+        label: 'CONSERVATIVE',
+        risk_level: 'low',
+        summary: 'Traversal-style path should never pass allowlist',
+        diff: [
+          `--- a/${filePath}`,
+          `+++ b/${filePath}`,
+          '@@ -1,1 +1,2 @@',
+          '-export const SECRET = oldValue;',
+          '+export const SECRET = newValue;'
+        ].join('\n')
+      },
+      safeBalanced(),
+      safeAggressive()
+    ]);
+
+    const result = await generatePatchOptions(analysis, OUT_DIR);
+    const conservative = findResult(result, 'conservative');
+    const conservativeReview = readQualityReview('conservative');
+
+    expect(conservative.verdict).toBe('NO_GO');
+    expect(conservative.risk_level).toBe('high');
+    expect(joinedReasons(conservativeReview)).toContain('Out-of-scope file changes detected');
   });
 
   test('forces NO_GO when quality review slop_score is out of schema range', async () => {

@@ -38,13 +38,53 @@ export function isMCPConfigured(): boolean {
  * Get MCP config file path
  */
 function getMCPConfigPath(): string {
-  return path.join(
-    os.homedir(),
-    '.config',
-    'github-copilot',
-    'cli',
-    'config.json'
-  );
+  const overridePath = process.env.COPILOT_CLI_CONFIG_PATH || process.env.GITHUB_COPILOT_CONFIG_PATH;
+  if (overridePath && overridePath.trim().length > 0) {
+    return path.normalize(overridePath.trim());
+  }
+
+  const home = os.homedir();
+  const candidates: string[] = [];
+
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA;
+    const userProfile = process.env.USERPROFILE || home;
+    if (appData) {
+      candidates.push(path.join(appData, 'GitHub Copilot', 'cli', 'config.json'));
+    }
+    candidates.push(path.join(userProfile, '.config', 'github-copilot', 'cli', 'config.json'));
+  } else if (process.platform === 'darwin') {
+    candidates.push(path.join(home, 'Library', 'Application Support', 'github-copilot', 'cli', 'config.json'));
+    candidates.push(path.join(home, '.config', 'github-copilot', 'cli', 'config.json'));
+  } else {
+    const xdgConfigHome = process.env.XDG_CONFIG_HOME;
+    if (xdgConfigHome) {
+      candidates.push(path.join(xdgConfigHome, 'github-copilot', 'cli', 'config.json'));
+    }
+    candidates.push(path.join(home, '.config', 'github-copilot', 'cli', 'config.json'));
+  }
+
+  const normalizedCandidates = candidates.map((candidate) => path.normalize(candidate));
+  const existing = normalizedCandidates.find((candidate) => fs.existsSync(candidate));
+  return existing || normalizedCandidates[0];
+}
+
+function resolveGithubToken(): string {
+  const envToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (envToken && envToken.trim().length > 0) {
+    return envToken.trim();
+  }
+
+  try {
+    const ghToken = execSync('gh auth token', {
+      stdio: ['ignore', 'pipe', 'ignore'],
+      encoding: 'utf8'
+    })
+      .trim();
+    return ghToken;
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -82,8 +122,14 @@ export async function ensureMCPConfigured(): Promise<boolean> {
   }
 
   // Create config
-  const configPath = getMCPConfigPath();
+  const configPath = path.normalize(getMCPConfigPath());
   const configDir = path.dirname(configPath);
+  const githubToken = resolveGithubToken();
+
+  if (!githubToken) {
+    console.log(chalk.yellow('[!] No GitHub token found in env/gh auth token.'));
+    console.log(chalk.dim('    MCP config will be created with empty token; set GITHUB_TOKEN or run gh auth login.'));
+  }
 
   if (!fs.existsSync(configDir)) {
     fs.mkdirSync(configDir, { recursive: true });
@@ -106,8 +152,7 @@ export async function ensureMCPConfigured(): Promise<boolean> {
             command: 'npx',
             args: ['-y', '@modelcontextprotocol/server-github'],
             env: {
-              // M1 FIX: Use actual env var value, not literal string
-              GITHUB_TOKEN: process.env.GITHUB_TOKEN || process.env.GH_TOKEN || ''
+              GITHUB_TOKEN: githubToken
             }
           }
         }
@@ -121,7 +166,7 @@ export async function ensureMCPConfigured(): Promise<boolean> {
             command: 'npx',
             args: ['-y', '@modelcontextprotocol/server-github'],
             env: {
-              GITHUB_TOKEN: process.env.GITHUB_TOKEN || process.env.GH_TOKEN || ''
+              GITHUB_TOKEN: githubToken
             }
           }
         }
@@ -136,7 +181,7 @@ export async function ensureMCPConfigured(): Promise<boolean> {
           command: 'npx',
           args: ['-y', '@modelcontextprotocol/server-github'],
           env: {
-            GITHUB_TOKEN: process.env.GITHUB_TOKEN || process.env.GH_TOKEN || ''
+            GITHUB_TOKEN: githubToken
           }
         }
       }

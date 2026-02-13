@@ -77,8 +77,50 @@ function unique(values: string[]): string[] {
   return out;
 }
 
+const GLOB_REGEX_CACHE = new Map<string, RegExp | null>();
+
+function normalizeGlobPath(value: string): string {
+  let normalized = String(value || "").replace(/\\/g, "/").trim();
+  normalized = normalized.replace(/\/+/g, "/");
+  while (normalized.startsWith("./")) normalized = normalized.slice(2);
+  normalized = path.posix.normalize(normalized);
+  if (normalized === ".") return "";
+  return normalized;
+}
+
+function hasTraversalSegments(value: string): boolean {
+  return String(value || "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .some((segment) => segment === "..");
+}
+
+function expandBracePatterns(pattern: string): string[] {
+  const open = pattern.indexOf("{");
+  if (open === -1) return [pattern];
+  const close = pattern.indexOf("}", open + 1);
+  if (close === -1) return [pattern];
+  const inner = pattern.slice(open + 1, close);
+  if (!inner.includes(",")) return [pattern];
+
+  const prefix = pattern.slice(0, open);
+  const suffix = pattern.slice(close + 1);
+  const options = inner
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (options.length === 0) return [pattern];
+
+  const expanded: string[] = [];
+  for (const option of options) {
+    expanded.push(...expandBracePatterns(`${prefix}${option}${suffix}`));
+  }
+  return expanded;
+}
+
 function globToRegex(glob: string): RegExp {
-  const normalized = glob.replace(/\\/g, "/").trim();
+  const normalized = normalizeGlobPath(glob);
+  if (!normalized) return /^$/;
   const segments = normalized.split("/");
   let out = "^";
 
@@ -114,14 +156,41 @@ function globToRegex(glob: string): RegExp {
   return new RegExp(out);
 }
 
+function compileGlob(glob: string): RegExp | null {
+  const cacheKey = glob;
+  if (GLOB_REGEX_CACHE.has(cacheKey)) {
+    return GLOB_REGEX_CACHE.get(cacheKey) ?? null;
+  }
+
+  try {
+    const compiled = globToRegex(glob);
+    GLOB_REGEX_CACHE.set(cacheKey, compiled);
+    return compiled;
+  } catch {
+    GLOB_REGEX_CACHE.set(cacheKey, null);
+    return null;
+  }
+}
+
 function isAllowedByPatterns(filePath: string, allowedFiles: string[]): boolean {
-  const normalizedFile = filePath.replace(/\\/g, "/");
+  const normalizedFile = normalizeGlobPath(filePath);
+  if (!normalizedFile) return false;
+  if (hasTraversalSegments(filePath)) return false;
+  if (normalizedFile.startsWith("../") || normalizedFile.startsWith("/")) return false;
+
   return allowedFiles.some((rawPattern) => {
-    const pattern = String(rawPattern || "").trim().replace(/\\/g, "/");
+    const pattern = normalizeGlobPath(String(rawPattern || ""));
     if (!pattern) return false;
-    if (pattern === normalizedFile) return true;
-    if (!pattern.includes("*") && !pattern.includes("?")) return false;
-    return globToRegex(pattern).test(normalizedFile);
+    if (hasTraversalSegments(rawPattern)) return false;
+
+    const candidates = expandBracePatterns(pattern);
+    for (const candidate of candidates) {
+      if (candidate === normalizedFile) return true;
+      if (!candidate.includes("*") && !candidate.includes("?")) continue;
+      const regex = compileGlob(candidate);
+      if (regex && regex.test(normalizedFile)) return true;
+    }
+    return false;
   });
 }
 
@@ -147,6 +216,31 @@ function getAddedContent(diff: string): string {
     .filter((line) => line.startsWith("+") && !line.startsWith("+++"))
     .map((line) => line.slice(1))
     .join("\n");
+}
+
+function isCommentOnlyLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return true;
+  return (
+    trimmed.startsWith("//") ||
+    trimmed.startsWith("/*") ||
+    trimmed === "*/" ||
+    trimmed.startsWith("*") ||
+    trimmed.startsWith("#") ||
+    trimmed.startsWith("--") ||
+    trimmed.startsWith("<!--") ||
+    trimmed === "-->"
+  );
+}
+
+function detectNoOpSlop(diff: string): boolean {
+  const addedLines = diff
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("+") && !line.startsWith("+++"))
+    .map((line) => line.slice(1));
+
+  if (addedLines.length === 0) return false;
+  return addedLines.every((line) => isCommentOnlyLine(line));
 }
 
 function deterministicQualityReview(
@@ -225,6 +319,13 @@ function deterministicQualityReview(
     forceNoGo = true;
     reasons.push("Patch introduces TODO/FIXME/HACK markers.");
     suggestedAdjustments.push("Ship executable fix, not placeholder follow-up markers.");
+  }
+
+  if (detectNoOpSlop(diff)) {
+    score += 0.5;
+    forceNoGo = true;
+    reasons.push("No-op patch detected (only comments or whitespace added).");
+    suggestedAdjustments.push("Generate functional code changes that address the root cause.");
   }
 
   if (/(?:@ts-ignore|@ts-nocheck|eslint-disable)/i.test(addedContentLower)) {
