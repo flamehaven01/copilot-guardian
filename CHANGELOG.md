@@ -7,12 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.7] - 2026-02-13
 
+### Security/Robustness Hardening + Confidence Guardrails
+
+#### Added
+- **Confidence-gap ambiguity defense in analysis**
+  - Added `confidence_gap` computation between top-ranked hypotheses.
+  - Added `low_confidence_ambiguity` flag and reviewer guidance fields in `analysis.json`.
+  - Added operator-facing warning to use `--show-reasoning` and larger `--max-log-chars` when ambiguity is detected.
+- **Deterministic no-op slop detection**
+  - Quality guard now fail-closes comment-only/whitespace-only patch additions (`NO_GO`).
+- **Regression tests for critical paths**
+  - Added `tests/analyze_confidence_gap.test.ts`.
+  - Extended traversal tests to include both Unix-style (`../`) and Windows-style (`..\\`) path traversal variants.
+
+#### Changed
+- **Allowlist/path-scope hardening**
+  - Hardened glob matching and path normalization for safer scope checks.
+  - Added traversal-segment rejection to prevent allowlist bypass via path tricks.
+- **MCP configuration resilience**
+  - Improved cross-platform config path resolution (Windows/macOS/Linux) with normalized paths.
+  - Added GitHub token resolution fallback via `gh auth token` when env vars are absent.
+- **Version alignment (docs/runtime metadata)**
+  - Runtime/package/docs bumped to `0.2.7`.
+
+## [0.2.6] - 2026-02-12
+
 ### npm Publish + Packaging Hygiene
 
 #### Added
 - **Published to npm (`latest`)**
   - Package name: `copilot-guardian`
-  - Published version: `0.2.7`
+  - Published version: `0.2.6`
   - Install paths:
     - `npm i -g copilot-guardian@latest`
     - `npx copilot-guardian@latest --help`
@@ -27,9 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added explicit npm package URL and install/run guidance using `@latest`.
   - Adjusted badge layout for readability.
 - **Version alignment (docs/runtime metadata)**
-  - README badges updated to `0.2.7` / `v0.2.7`.
-  - CLI runtime version string updated to `0.2.7`.
-  - CHANGELOG top release synchronized to `0.2.7`.
+  - README badges updated to `0.2.6` / `v0.2.6`.
+  - CLI runtime version string updated to `0.2.6`.
+  - CHANGELOG top release synchronized to `0.2.6`.
 
 #### Fixed
 - **Security policy documentation alignment**
