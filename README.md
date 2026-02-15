@@ -14,8 +14,9 @@ Deterministic safety layer for Copilot-driven CI healing.
 [![Copilot CLI Challenge](https://img.shields.io/badge/GitHub-Copilot_Challenge-181717.svg?style=flat-square&logo=github&logoColor=white)](https://dev.to/challenges/github-2026-01-21)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Enabled-FF5722.svg?style=flat-square)](https://modelcontextprotocol.io/)
+[![Real Output Examples](https://img.shields.io/badge/Real_Output-Examples-green.svg?style=flat-square)](examples/real-output/)
 
-[Why Challenge](#why-this-is-a-copilot-cli-challenge-submission) • [Judge Quick Test](#judge-quick-test-90-seconds) • [Demo GIF](#demo-gif) • [Quick Start](#quick-start) • [How It Works](#how-it-works) • [Docs](#documentation-links)
+[Why Challenge](#why-this-is-a-copilot-cli-challenge-submission) | [Judge Quick Test](#judge-quick-test-90-seconds) | [Demo GIF](#demo-gif) | [Real Output Showcase](#real-output-showcase) | [Quick Start](#quick-start) | [How It Works](#how-it-works) | [Docs](#documentation-links)
 
 </div>
 
@@ -68,7 +69,19 @@ Final demo artifact:
 
 ![Judge Quick Test Demo](docs/screenshots/final-demo.gif)
 
-Runtime: 3m43s, Profile: --fast --max-log-chars 20000 (reasoning hidden for stable demo)
+**Runtime:** 3m43s | **Profile:** `--fast --max-log-chars 20000` (reasoning hidden for stable demo)
+
+Want to inspect the exact files from this run? Jump to [Real Output Showcase](#real-output-showcase).
+
+### What This Demo Shows
+
+1. Multi-hypothesis analysis generates competing theories with evidence.
+2. Three patch strategies are proposed: Conservative, Balanced, Aggressive.
+3. Fail-closed guard blocks malformed AI output in Conservative.
+4. Balanced and Aggressive pass independent quality review.
+5. Complete audit trail is exported as machine-readable artifacts.
+
+**Browse actual output files:** [examples/real-output/](examples/real-output/)
 
 ---
 
@@ -178,19 +191,68 @@ graph TB
 
 ---
 
+## Real Output Showcase
+
+This section references unmodified artifacts from live runs.
+
+> This is not a mock. Files below are unmodified outputs from actual Guardian runs.
+
+### Fail-Closed Safety in Action
+
+Conservative strategy was automatically rejected due to malformed Copilot JSON:
+
+```json
+{
+  "verdict": "NO_GO",
+  "risk_level": "high",
+  "slop_score": 1,
+  "reasons": [
+    "Parse error: Unbalanced JSON object in Copilot response - missing closing brace"
+  ]
+}
+```
+
+Source:
+- `examples/real-output/standard/quality_review.conservative.json`
+
+### Patch Quality Spectrum
+
+| Strategy | Target File | Risk | Verdict | Slop Score |
+|---|---|---|---|---|
+| Conservative | `src/engine/github.ts` | high | NO_GO | 1.0 |
+| Balanced | `src/engine/github.ts` | low | GO | 0.08 |
+| Aggressive | `tests/quality_guard_regression_matrix.test.ts` | low | GO | 0.08 |
+
+Source:
+- `examples/real-output/standard/patch_options.json`
+
+### Generated Artifact Sets
+
+- Standard run outputs: `examples/real-output/standard/`
+- Abstain-run evidence: `examples/real-output/abstain/guardian.report.json`
+
+Key insight:
+- Guardian does not trust model output blindly.
+- Deterministic checks can override AI and force `NO_GO`.
+
+---
+
 ## Output Files
 
 Artifacts are generated under `.copilot-guardian/`:
 
-| File | Purpose |
-|---|---|
-| `analysis.json` | Diagnosis + selected hypothesis |
-| `reasoning_trace.json` | Hypothesis trace |
-| `patch_options.json` | Strategy index + verdicts |
-| `fix.*.patch` | Patch files |
-| `quality_review.*.json` | Per-strategy quality results |
-| `abstain.report.json` | Forced abstain classification |
-| `copilot.*.raw.txt` | Raw model output snapshots |
+| File | Purpose | Example |
+|---|---|---|
+| `analysis.json` | Diagnosis + selected hypothesis | `examples/demo-failure/README.md` |
+| `reasoning_trace.json` | Hypothesis trace | `examples/demo-failure/README.md` |
+| `patch_options.json` | Strategy index + verdicts | [view](examples/real-output/standard/patch_options.json) |
+| `fix.*.patch` | Patch files | [view](examples/real-output/standard/fix.balanced.patch) |
+| `quality_review.*.json` | Per-strategy quality results | [view](examples/real-output/standard/quality_review.conservative.json) |
+| `abstain.report.json` | Forced abstain classification | [view](examples/real-output/abstain/guardian.report.json) |
+| `copilot.*.raw.txt` | Raw model output snapshots | [view](examples/real-output/standard/copilot.quality.conservative.raw.txt) |
+
+Tip:
+- Check [examples/real-output/](examples/real-output/) for raw evidence from standard and abstain paths.
 
 ---
 
@@ -198,6 +260,7 @@ Artifacts are generated under `.copilot-guardian/`:
 
 - Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Demo walkthrough: [examples/demo-failure/README.md](examples/demo-failure/README.md)
+- Real output evidence: [examples/real-output/README.md](examples/real-output/README.md)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Security: [SECURITY.md](SECURITY.md)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)

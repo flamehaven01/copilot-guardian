@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-02-14T08:43:52.445Z",
+  "results": [
+    {
+      "label": "CONSERVATIVE",
+      "id": "conservative",
+      "risk_level": "high",
+      "verdict": "NO_GO",
+      "slop_score": 1,
+      "patchPath": ".test-output\\fix.conservative.patch",
+      "files": [
+        "src/engine/github.ts"
+      ],
+      "summary": "Model output malformed"
+    },
+    {
+      "label": "BALANCED",
+      "id": "balanced",
+      "risk_level": "low",
+      "verdict": "GO",
+      "slop_score": 0.08,
+      "patchPath": ".test-output\\fix.balanced.patch",
+      "files": [
+        "src/engine/github.ts"
+      ],
+      "summary": "Real fix in allowed scope"
+    },
+    {
+      "label": "AGGRESSIVE",
+      "id": "aggressive",
+      "risk_level": "low",
+      "verdict": "GO",
+      "slop_score": 0.08,
+      "patchPath": ".test-output\\fix.aggressive.patch",
+      "files": [
+        "tests/quality_guard_regression_matrix.test.ts"
+      ],
+      "summary": "Real test fix in allowed scope"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+--- a/src/engine/github.ts
++++ b/src/engine/github.ts
+@@ -200,7 +200,7 @@
+-  return { workflowPath };
++  return { workflowPath: workflowPath || '' };

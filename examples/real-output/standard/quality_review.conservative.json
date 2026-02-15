@@ -1,0 +1,12 @@
+{
+  "verdict": "NO_GO",
+  "risk_level": "high",
+  "slop_score": 1,
+  "reasons": [
+    "Parse error: Unbalanced JSON object in Copilot response - missing closing brace"
+  ],
+  "suggested_adjustments": [
+    "Re-run quality review with stricter JSON-only response",
+    "Inspect copilot.quality.*.raw.txt for malformed output"
+  ]
+}

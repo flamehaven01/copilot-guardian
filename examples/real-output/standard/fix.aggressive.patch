@@ -1,0 +1,5 @@
+--- a/tests/quality_guard_regression_matrix.test.ts
++++ b/tests/quality_guard_regression_matrix.test.ts
+@@ -1,1 +1,1 @@
+-const oldValue = 0;
++const oldValue = 1;

@@ -30,6 +30,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Version alignment (docs/runtime metadata)**
   - Runtime/package/docs bumped to `0.2.7`.
 
+### Documentation Evidence Update - 2026-02-15
+
+#### Added
+- **Real output evidence package for reviewer verification**
+  - Added `examples/real-output/standard/` with unmodified artifacts copied from `.test-output/`:
+    - `patch_options.json`
+    - `fix.*.patch`
+    - `quality_review.*.json`
+    - `copilot.*.raw*.txt`
+  - Added `examples/real-output/abstain/guardian.report.json` copied from `.test-output-run-abstain/`.
+  - Added `examples/real-output/README.md` documenting context, evidence map, and interpretation.
+
+#### Changed
+- **README now highlights real execution evidence**
+  - Added `Real Output Examples` badge in the header.
+  - Strengthened Demo section with explicit `What This Demo Shows` checklist and quick jump to evidence.
+  - Added `Real Output Showcase` with fail-closed `NO_GO` JSON evidence from conservative strategy.
+  - Expanded `Output Files` table to include direct example links under `examples/real-output/`.
+  - Added explicit references to both standard and abstain evidence paths for auditability.
+
 ## [0.2.6] - 2026-02-12
 
 ### npm Publish + Packaging Hygiene

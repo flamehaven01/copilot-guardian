@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-02-14T08:43:45.547Z",
+  "repo": "owner/repo",
+  "runId": 456,
+  "analysisPath": ".test-output-run-abstain\\analysis.json",
+  "patchIndexPath": ".test-output-run-abstain\\patch_options.json",
+  "redacted": true
+}

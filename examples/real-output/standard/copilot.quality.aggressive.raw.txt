@@ -1,0 +1,1 @@
+{"verdict":"GO","slop_score":0.08,"risk_level":"low","reasons":["Model judged patch as acceptable"],"suggested_adjustments":[]}
