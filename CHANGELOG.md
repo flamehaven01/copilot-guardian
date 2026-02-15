@@ -45,10 +45,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Changed
 - **README now highlights real execution evidence**
   - Added `Real Output Examples` badge in the header.
-  - Strengthened Demo section with explicit `What This Demo Shows` checklist and quick jump to evidence.
-  - Added `Real Output Showcase` with fail-closed `NO_GO` JSON evidence from conservative strategy.
+  - Reworked hero section with stronger value hook and immediate quick-run command.
+  - Reordered content flow to `Demo -> Why This Matters -> Real Output Showcase` for faster reviewer conversion.
+  - Strengthened Demo section with explicit `What happens in this run` checklist and direct artifact path.
+  - Added `Real Output Showcase` with fail-closed `NO_GO` JSON evidence and raw malformed-response link.
+  - Expanded patch spectrum table with explicit `HIGH/LOW` risk and bold `GO/NO_GO` verdicts.
   - Expanded `Output Files` table to include direct example links under `examples/real-output/`.
   - Added explicit references to both standard and abstain evidence paths for auditability.
+  - Added stronger `Try It Now` CTA with issue/docs/examples links and social star badge.
 
 ## [0.2.6] - 2026-02-12
 
