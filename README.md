@@ -21,16 +21,41 @@ proposes risk-stratified patches, and blocks unsafe AI output before it touches 
 [![MCP](https://img.shields.io/badge/MCP-Enabled-FF5722.svg?style=flat-square)](https://modelcontextprotocol.io/)
 [![Real Output Examples](https://img.shields.io/badge/Real_Output-Examples-green.svg?style=flat-square)](examples/real-output/)
 
-[Demo GIF](#demo-gif) | [Why This Matters](#why-this-matters) | [Real Output Showcase](#real-output-showcase) | [Judge Quick Test](#judge-quick-test-90-seconds) | [Quick Start](#quick-start) | [How It Works](#how-it-works) | [Output Files](#output-files)
+[Challenge Submission](#why-this-is-a-copilot-cli-challenge-submission) | [Demo](#demo-gif) | [Why This Matters](#why-this-matters) | [Real Evidence](#real-output-showcase) | [90s Test](#judge-quick-test-90-seconds) | [Quick Start](#quick-start) | [Docs](#documentation-links)
 
 </div>
 
 ---
 
-Quick demo:
+<div align="center">
+
+**Quick Test (90 seconds):**
 ```bash
-npx copilot-guardian@latest run --repo YOUR/REPO --last-failed --show-options --fast --max-log-chars 20000
+npx copilot-guardian@latest run --repo YOUR/REPO --last-failed --fast
 ```
+
+</div>
+
+---
+
+## Why This Is a Copilot CLI Challenge Submission
+
+Guardian demonstrates five advanced Copilot usage patterns under real CI failures:
+
+1. **Multi-hypothesis reasoning**: generate three competing theories with explicit confidence and evidence.
+2. **Risk-stratified generation**: synthesize Conservative/Balanced/Aggressive patches at different risk levels.
+3. **Deterministic fail-closed guardrails**: override AI decisions when bypass patterns or malformed outputs are detected.
+4. **MCP-enriched context**: use Model Context Protocol for deeper repository context.
+5. **Complete artifact trail**: export `analysis.json`, raw Copilot responses, and patch index for auditability.
+
+Runtime clarification:
+- Guardian is a terminal CLI tool built with `@github/copilot-sdk` as the primary runtime.
+- `gh copilot` CLI is available as an optional fallback for local reproducibility.
+- Copilot interactions are logged to `.raw.txt` files for traceability.
+
+Real proof:
+- Conservative patch was auto-blocked because Copilot returned malformed JSON.
+- See [Real Output Showcase](#real-output-showcase).
 
 ---
 
@@ -47,35 +72,38 @@ What happens in this run:
 4. Block malformed AI output with fail-closed guardrails.
 5. Export raw artifacts for full auditability.
 
-Browse exact files from this run:
+Browse the exact files from this demo:
 - [examples/real-output/standard/](examples/real-output/standard/)
 
 ---
 
 ## Why This Matters
 
-Problem:
-- AI-assisted CI fixes can silently introduce unsafe edits or malformed outputs.
+The problem:
+- AI-assisted CI fixes can silently introduce security bypasses or malformed outputs.
 - A green-looking suggestion is not proof of safe behavior.
+- Most tools generate one patch and hope it works.
 
 Guardian's approach:
 - Generate multiple hypotheses and patch strategies instead of one guess.
 - Validate every candidate with deterministic controls.
 - Fail closed (`NO_GO`) when output is malformed or risky.
 
-Real case from this demo:
+Real case from the demo above:
 1. Copilot returned malformed quality JSON for Conservative review.
 2. Deterministic guard detected parse failure.
-3. Guardian blocked with `NO_GO`.
+3. Guardian blocked with `NO_GO` verdict.
 4. Broken output was never auto-applied.
+
+This is fail-closed engineering: trust AI, but verify with hard rules.
 
 ---
 
 ## Real Output Showcase
 
-> Not a mock. Files below are unmodified outputs from actual Guardian runs.
+> This is not a mock. Files below are unmodified outputs from actual Guardian runs.
 
-### Fail-Closed in Action: AI Gets It Wrong, Guardian Blocks It
+### Fail-Closed in Action: When AI Gets It Wrong
 
 Conservative strategy was automatically rejected due to malformed Copilot JSON:
 
@@ -83,45 +111,68 @@ Conservative strategy was automatically rejected due to malformed Copilot JSON:
 {
   "verdict": "NO_GO",
   "risk_level": "high",
-  "slop_score": 1,
+  "slop_score": 1.0,
   "reasons": [
     "Parse error: Unbalanced JSON object in Copilot response - missing closing brace"
+  ],
+  "suggested_adjustments": [
+    "Re-run quality review with stricter JSON-only response",
+    "Inspect copilot.quality.*.raw.txt for malformed output"
   ]
 }
 ```
 
-Source:
-- [examples/real-output/standard/quality_review.conservative.json](examples/real-output/standard/quality_review.conservative.json)
-- [examples/real-output/standard/copilot.quality.conservative.raw.txt](examples/real-output/standard/copilot.quality.conservative.raw.txt)
+What happened:
+1. AI generated a patch for `src/engine/github.ts`.
+2. Quality review response was incomplete JSON.
+3. Deterministic guard caught the parse error.
+4. System blocked the patch (fail-closed enforcement).
+5. User was protected from applying broken code.
+
+Source files:
+- [quality_review.conservative.json](examples/real-output/standard/quality_review.conservative.json)
+- [copilot.quality.conservative.raw.txt](examples/real-output/standard/copilot.quality.conservative.raw.txt)
 
 ### Patch Quality Spectrum
 
-| Strategy | Target File | Risk Level | Verdict | Slop Score | What It Does |
+| Strategy | Target File | Risk | Verdict | Slop | What It Does |
 |---|---|---|---|---|---|
-| Conservative | `src/engine/github.ts` | HIGH | **NO_GO** | 1.0 | Blocked due to malformed quality response |
-| Balanced | `src/engine/github.ts` | LOW | **GO** | 0.08 | Adds null-safe fallback for `workflowPath` |
-| Aggressive | `tests/quality_guard_regression_matrix.test.ts` | LOW | **GO** | 0.08 | Updates test expectation value |
+| Conservative | `src/engine/github.ts` | HIGH | **NO_GO** | 1.0 | Blocked - malformed AI output |
+| Balanced | `src/engine/github.ts` | LOW | **GO** | 0.08 | Null-safe fallback |
+| Aggressive | `tests/quality_guard_regression_matrix.test.ts` | LOW | **GO** | 0.08 | Test update |
 
-Source:
-- [examples/real-output/standard/patch_options.json](examples/real-output/standard/patch_options.json)
-- [examples/real-output/standard/fix.balanced.patch](examples/real-output/standard/fix.balanced.patch)
-- [examples/real-output/standard/fix.aggressive.patch](examples/real-output/standard/fix.aggressive.patch)
+Source files:
+- [patch_options.json](examples/real-output/standard/patch_options.json)
+- [fix.balanced.patch](examples/real-output/standard/fix.balanced.patch)
+- [fix.aggressive.patch](examples/real-output/standard/fix.aggressive.patch)
 
-Generated artifact sets:
-- Standard run: [examples/real-output/standard/](examples/real-output/standard/)
-- Abstain evidence: [examples/real-output/abstain/guardian.report.json](examples/real-output/abstain/guardian.report.json)
+### Complete Artifact Trail
 
-Takeaway:
-- Guardian does not trust AI blindly.
-- Deterministic checks can override model output.
+```text
+examples/real-output/standard/
+  patch_options.json
+  fix.conservative.patch
+  fix.balanced.patch
+  fix.aggressive.patch
+  quality_review.*.json
+  copilot.*.raw.txt
+```
+
+Browse all files:
+- [examples/real-output/standard/](examples/real-output/standard/)
+
+Additional evidence:
+- [examples/real-output/abstain/guardian.report.json](examples/real-output/abstain/guardian.report.json)
+
+Key insight: Guardian does not trust AI blindly; deterministic checks can override model output.
 
 ---
 
 ## Judge Quick Test (90 seconds)
 
 Prerequisites:
-- `gh auth status` succeeds
-- GitHub Copilot is enabled for your account/session
+- `gh auth status` succeeds.
+- GitHub Copilot is enabled for your account/session.
 
 ```bash
 npx copilot-guardian@latest run \
@@ -132,10 +183,10 @@ npx copilot-guardian@latest run \
   --max-log-chars 20000
 ```
 
-Expected:
-1. Structured diagnosis in `analysis.json`
-2. Strategy index in `patch_options.json`
-3. Safety verdicts in `quality_review.*.json`
+Expected output:
+1. Structured diagnosis in `analysis.json`.
+2. Strategy index in `patch_options.json`.
+3. Safety verdicts in `quality_review.*.json`.
 
 For extended trace mode (slower), add `--show-reasoning`.
 
@@ -145,15 +196,17 @@ For extended trace mode (slower), add `--show-reasoning`.
 
 ### Prerequisites
 
-- Node.js >=18
+- Node.js 18+
 - GitHub CLI (`gh`) authenticated
 - GitHub Copilot subscription (SDK access)
 
 ### Installation
 
 ```bash
+# Global install
 npm i -g copilot-guardian@latest
-# or
+
+# Or run without install
 npx copilot-guardian@latest --help
 ```
 
@@ -175,15 +228,13 @@ copilot-guardian run \
 copilot-guardian analyze \
   --repo owner/repo \
   --run-id <run_id> \
-  --fast \
-  --max-log-chars 20000
+  --fast
 
 # Evaluate multiple failed runs
 copilot-guardian eval \
   --repo owner/repo \
   --failed-limit 5 \
-  --fast \
-  --max-log-chars 50000
+  --fast
 
 # Interactive follow-up
 copilot-guardian debug \
@@ -224,32 +275,20 @@ graph TB
 
 ---
 
-## Forced Abstain Policy (Not Patchable)
+## Forced Abstain Policy
 
-Guardian abstains for non-patchable classes:
-- `401/403` auth failures
+Guardian intentionally abstains for non-patchable failure classes:
+- `401/403` authentication failures
 - token permission errors
-- API rate-limit or infra-unavailable patterns
+- API rate-limit or infrastructure unavailability
 
 When abstaining:
-- `abstain.report.json` is emitted
-- patch generation is skipped
+- `abstain.report.json` is emitted with classification.
+- Patch generation is skipped.
+- User receives actionable recommendations.
 
----
-
-## Why This Is a Copilot CLI Challenge Submission
-
-This project demonstrates five advanced Copilot usage patterns under real CI failures:
-1. Multi-hypothesis reasoning with explicit confidence and evidence
-2. Patch synthesis across conservative, balanced, and aggressive strategies
-3. Deterministic fail-closed guardrails against slop and bypass patterns
-4. MCP-enriched context to improve diagnosis quality
-5. Transparent artifact trail (`analysis.json`, raw responses, patch index)
-
-Runtime clarification:
-- Copilot Guardian is a terminal CLI tool.
-- Copilot requests use `@github/copilot-sdk` as the default path.
-- `gh copilot` is available as an optional terminal fallback for local reproducibility.
+Example:
+- [examples/real-output/abstain/guardian.report.json](examples/real-output/abstain/guardian.report.json)
 
 ---
 
@@ -260,12 +299,15 @@ Artifacts are generated under `.copilot-guardian/`:
 | File | Purpose | Example |
 |---|---|---|
 | `analysis.json` | Diagnosis + selected hypothesis | [demo context](examples/demo-failure/README.md) |
-| `reasoning_trace.json` | Hypothesis trace | [demo context](examples/demo-failure/README.md) |
+| `reasoning_trace.json` | Complete hypothesis trace | [demo context](examples/demo-failure/README.md) |
 | `patch_options.json` | Strategy index + verdicts | [view](examples/real-output/standard/patch_options.json) |
-| `fix.*.patch` | Patch files | [view](examples/real-output/standard/fix.balanced.patch) |
+| `fix.*.patch` | Generated patch files | [view](examples/real-output/standard/fix.balanced.patch) |
 | `quality_review.*.json` | Per-strategy quality results | [view](examples/real-output/standard/quality_review.conservative.json) |
 | `abstain.report.json` | Forced abstain classification | [view](examples/real-output/abstain/guardian.report.json) |
 | `copilot.*.raw.txt` | Raw model output snapshots | [view](examples/real-output/standard/copilot.quality.conservative.raw.txt) |
+
+Tip:
+- Check [examples/real-output/](examples/real-output/) for evidence from standard and abstain paths.
 
 ---
 
@@ -277,14 +319,6 @@ Artifacts are generated under `.copilot-guardian/`:
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Security: [SECURITY.md](SECURITY.md)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## License
-
-MIT License. See [LICENSE](LICENSE).
-
-## Credits
-
-Built by Flamehaven (Yun) for the [GitHub Copilot CLI Challenge](https://dev.to/challenges/github-2026-01-21).
 
 ---
 
@@ -304,10 +338,16 @@ npx copilot-guardian@latest run \
   --fast
 ```
 
-Questions:
+Questions?
 - [Open an issue](https://github.com/flamehaven01/copilot-guardian/issues)
-- [Read the architecture docs](docs/ARCHITECTURE.md)
-- [View real output examples](examples/real-output/)
+- [Read architecture docs](docs/ARCHITECTURE.md)
+- [Browse real output examples](examples/real-output/)
+
+---
+
+## License
+
+MIT License. See [LICENSE](LICENSE).
 
 ---
 

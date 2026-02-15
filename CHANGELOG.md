@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Expanded `Output Files` table to include direct example links under `examples/real-output/`.
   - Added explicit references to both standard and abstain evidence paths for auditability.
   - Added stronger `Try It Now` CTA with issue/docs/examples links and social star badge.
+  - Finalized section ordering for reviewer flow: `Challenge Submission -> Demo -> Why This Matters -> Real Output Showcase -> Judge Quick Test`.
 
 ## [0.2.6] - 2026-02-12
 
