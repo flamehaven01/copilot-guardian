@@ -353,7 +353,7 @@ MIT License. See [LICENSE](LICENSE).
 
 <div align="center">
 
-Built by [Flamehaven (Yun)](https://github.com/flamehaven01) for the [GitHub Copilot CLI Challenge](https://dev.to/challenges/github-2026-01-21)
+Copilot Guardian Project by [Flamehaven (Yun)](https://github.com/flamehaven01) for the [GitHub Copilot CLI Challenge](https://dev.to/challenges/github-2026-01-21)
 
 **Trust is built on receipts, not promises.**
 
